@@ -1564,9 +1564,20 @@ pub extern "C" fn call() {
     // a given contract instance. Refer to the enum `NFTHolderMode`
     // in the `src/utils.rs` file for details.
     // This value cannot be changed after installation
-    let holder_mode: u8 =
-        get_optional_named_arg_with_user_errors(ARG_HOLDER_MODE, NFTCoreError::InvalidHolderMode)
-            .unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
+
+    //CHANGE TO DEPLOY SUCCESSFULLY
+
+    let holder_mode: u8 = get_named_arg_with_user_errors(
+        ARG_HOLDER_MODE,
+        NFTCoreError::MissingHolderMode,
+        NFTCoreError::InvalidHolderMode,
+    )
+    .unwrap_or_revert();
+
+
+    // let holder_mode: u8 =
+    //     get_optional_named_arg_with_user_errors(ARG_HOLDER_MODE, NFTCoreError::InvalidHolderMode)
+    //         .unwrap_or_revert_with(NFTCoreError::InvalidHolderMode);
 
     // Represents whether a given contract whitelist can be modified
     // for a given NFT contract instance. If not provided as an argument
