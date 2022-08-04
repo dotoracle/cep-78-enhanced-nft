@@ -22,6 +22,11 @@ pub const ARG_CONTRACT_WHITELIST: &str = "contract_whitelist";
 pub const ARG_NFT_METADATA_KIND: &str = "nft_metadata_kind";
 pub const ARG_IDENTIFIER_MODE: &str = "identifier_mode";
 pub const ARG_METADATA_MUTABILITY: &str = "metadata_mutability";
+pub const ARG_DTO_MINT_FEE:&str = "dto_mint_fee";
+pub const ARG_DTO_ORIGIN_CHAINID:&str = "dto_origin_chainid";
+pub const ARG_DTO_ORIGIN_CONTRACT_ADDRESS:&str = "dto_origin_contract_address";
+pub const ARG_DTO_DEV:&str = "dto_dev";
+
 
 pub const OPERATOR: &str = "operator";
 pub const NUMBER_OF_MINTED_TOKENS: &str = "number_of_minted_tokens";
@@ -67,3 +72,8 @@ pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 pub const ENTRY_POINT_METADATA: &str = "metadata";
 pub const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 pub const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
+pub const DTO_MINT_FEE : &str = "dto_mint_fee";
+pub const DTO_ORIGIN_CHAINID : &str = "dto_origin_chainid";
+pub const DTO_ORIGIN_CONTRACT_ADDRESS : &str = "dto_origin_contract_address";
+pub const DTO_DEV : &str = "dto_dev";
+ 

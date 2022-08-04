@@ -195,6 +195,22 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    // INSERT MORE ARGUMENTS
+
+    let dto_mint_fee: u64 = get_named_arg_with_user_errors(
+        ARG_DTO_MINT_FEE,
+        NFTCoreError::MissingDtoMintFee,
+        NFTCoreError::InvalidDtoMintFee,
+    )
+    .unwrap_or_revert();
+
+    let dto_dev: String = get_named_arg_with_user_errors(
+        ARG_DTO_DEV,
+        NFTCoreError::MissingDtoDev,
+        NFTCoreError::InvalidDtoDev,
+    )
+    .unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -241,6 +257,11 @@ pub extern "C" fn init() {
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
     runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
+
+    // DTO arguments
+    runtime::put_key(DTO_MINT_FEE, storage::new_uref(dto_mint_fee).into());
+    runtime::put_key(DTO_DEV, storage::new_uref(dto_dev).into());
+
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
     runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(0u64).into());
@@ -345,6 +366,29 @@ pub extern "C" fn mint() {
         NFTCoreError::InvalidTotalTokenSupply,
     );
 
+    // ADD MORE ARGUMENTS
+    let dto_mint_fee = get_stored_value_with_user_errors::<u64>(
+        DTO_MINT_FEE,
+        NFTCoreError::MissingDtoMintFee,
+        NFTCoreError::InvalidDtoMintFee,
+    );
+    let dto_dev = get_stored_value_with_user_errors::<String>(
+        DTO_DEV,
+        NFTCoreError::MissingDtoDev,
+        NFTCoreError::InvalidDtoDev,
+    );
+
+    let dto_origin_chainid = get_named_arg_with_user_errors::<String>(
+        ARG_DTO_ORIGIN_CHAINID,
+        NFTCoreError::MissingDtoOriginChainID,
+        NFTCoreError::InvalidDtoOriginChainID,
+    );
+
+    let dto_origin_contract_address = get_named_arg_with_user_errors::<String>(
+        ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
+        NFTCoreError::MissingDtoOriginContractAddress,
+        NFTCoreError::InvalidDtoOriginContractAddress,
+    );
     // The next_index is the number of minted tokens so far.
     let mut next_index = get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
@@ -441,6 +485,8 @@ pub extern "C" fn mint() {
         NFTIdentifierMode::Ordinal => TokenIdentifier::Index(next_index),
         NFTIdentifierMode::Hash => {
             TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(&metadata)))
+            //TokenIdentifier::Hash(base16::encode_lower("
+            // FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"))
         }
     };
 

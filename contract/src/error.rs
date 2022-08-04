@@ -107,6 +107,14 @@ pub enum NFTCoreError {
     InvalidMetadataMutability = 102,
     FailedToJsonifyCustomMetadata = 103,
     ForbiddenMetadataUpdate = 104,
+    MissingDtoMintFee = 501,
+    InvalidDtoMintFee = 502,
+    MissingDtoOriginChainID = 503,
+    InvalidDtoOriginChainID = 504,
+    MissingDtoOriginContractAddress = 505,
+    InvalidDtoOriginContractAddress = 506,
+    MissingDtoDev = 507,
+    InvalidDtoDev = 508,
 }
 
 impl From<NFTCoreError> for ApiError {
