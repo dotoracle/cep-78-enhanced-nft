@@ -26,6 +26,7 @@ pub const ARG_DTO_MINT_FEE:&str = "dto_mint_fee";
 pub const ARG_DTO_ORIGIN_CHAINID:&str = "dto_origin_chainid";
 pub const ARG_DTO_ORIGIN_CONTRACT_ADDRESS:&str = "dto_origin_contract_address";
 pub const ARG_DTO_DEV:&str = "dto_dev";
+pub const ARG_DTO_MINTER : &str = "dto_minter";
 
 
 pub const OPERATOR: &str = "operator";
@@ -76,4 +77,5 @@ pub const DTO_MINT_FEE : &str = "dto_mint_fee";
 pub const DTO_ORIGIN_CHAINID : &str = "dto_origin_chainid";
 pub const DTO_ORIGIN_CONTRACT_ADDRESS : &str = "dto_origin_contract_address";
 pub const DTO_DEV : &str = "dto_dev";
+pub const DTO_MINTER : &str = "dto_minter";
  

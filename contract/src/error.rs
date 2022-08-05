@@ -115,6 +115,8 @@ pub enum NFTCoreError {
     InvalidDtoOriginContractAddress = 506,
     MissingDtoDev = 507,
     InvalidDtoDev = 508,
+    MissingDtoMinter = 509,
+    InvalidDtoMinter = 510,
 }
 
 impl From<NFTCoreError> for ApiError {

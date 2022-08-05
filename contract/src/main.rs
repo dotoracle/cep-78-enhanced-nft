@@ -211,6 +211,14 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let dto_minter: String = get_named_arg_with_user_errors(
+        ARG_DTO_MINTER,
+        NFTCoreError::MissingDtoMinter,
+        NFTCoreError::InvalidDtoMinter,
+    )
+    .unwrap_or_revert();
+
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -261,6 +269,7 @@ pub extern "C" fn init() {
     // DTO arguments
     runtime::put_key(DTO_MINT_FEE, storage::new_uref(dto_mint_fee).into());
     runtime::put_key(DTO_DEV, storage::new_uref(dto_dev).into());
+    runtime::put_key(DTO_MINTER, storage::new_uref(dto_minter).into());
 
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
@@ -377,6 +386,13 @@ pub extern "C" fn mint() {
         NFTCoreError::MissingDtoDev,
         NFTCoreError::InvalidDtoDev,
     );
+
+    let dto_minter = get_stored_value_with_user_errors::<String>(
+        DTO_MINTER,
+        NFTCoreError::MissingDtoMinter,
+        NFTCoreError::InvalidDtoMinter,
+    );
+
 
     let dto_origin_chainid = get_named_arg_with_user_errors::<String>(
         ARG_DTO_ORIGIN_CHAINID,
@@ -1569,6 +1585,29 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+
+    let dto_mint_fee: u64 = get_named_arg_with_user_errors(
+        ARG_DTO_MINT_FEE,
+        NFTCoreError::MissingDtoMintFee,
+        NFTCoreError::InvalidDtoMintFee,
+    )
+    .unwrap_or_revert();
+
+    let dto_dev: String = get_named_arg_with_user_errors(
+        ARG_DTO_DEV,
+        NFTCoreError::MissingDtoDev,
+        NFTCoreError::InvalidDtoDev,
+    )
+    .unwrap_or_revert();
+    let dto_minter: String = get_named_arg_with_user_errors(
+        ARG_DTO_MINTER,
+        NFTCoreError::MissingDtoMinter,
+        NFTCoreError::InvalidDtoMinter,
+    )
+    .unwrap_or_revert();
+
+
+
     let allow_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_ALLOW_MINTING,
         NFTCoreError::InvalidMintingStatus,
@@ -1717,7 +1756,10 @@ pub extern "C" fn call() {
              ARG_RECEIPT_NAME => receipt_name,
              ARG_NFT_METADATA_KIND => nft_metadata_kind,
              ARG_IDENTIFIER_MODE => identifier_mode,
-             ARG_METADATA_MUTABILITY => metadata_mutability
+             ARG_METADATA_MUTABILITY => metadata_mutability,
+             ARG_DTO_DEV => dto_dev,
+             ARG_DTO_MINTER => dto_minter,
+             ARG_DTO_MINT_FEE => dto_mint_fee,
         },
     );
 }
