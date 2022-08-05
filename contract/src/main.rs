@@ -218,6 +218,19 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let dto_origin_chainid: String = get_named_arg_with_user_errors(
+        ARG_DTO_ORIGIN_CHAINID,
+        NFTCoreError::MissingDtoOriginChainID,
+        NFTCoreError::InvalidDtoOriginChainID,
+    )
+    .unwrap_or_revert();
+
+    let dto_origin_contract_address: String = get_named_arg_with_user_errors(
+        ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
+        NFTCoreError::MissingDtoOriginContractAddress,
+        NFTCoreError::InvalidDtoOriginContractAddress,
+    )
+    .unwrap_or_revert();
 
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
@@ -270,6 +283,14 @@ pub extern "C" fn init() {
     runtime::put_key(DTO_MINT_FEE, storage::new_uref(dto_mint_fee).into());
     runtime::put_key(DTO_DEV, storage::new_uref(dto_dev).into());
     runtime::put_key(DTO_MINTER, storage::new_uref(dto_minter).into());
+    runtime::put_key(
+        DTO_ORIGIN_CHAINID,
+        storage::new_uref(dto_origin_chainid).into(),
+    );
+    runtime::put_key(
+        DTO_ORIGIN_CONTRACT_ADDRESS,
+        storage::new_uref(dto_origin_contract_address).into(),
+    );
 
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
@@ -392,19 +413,13 @@ pub extern "C" fn mint() {
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     );
+    let dto_mint_id = get_named_arg_with_user_errors::<String>(
+        ARG_DTO_MINT_ID,
+        NFTCoreError::MissingDtoMintID,
+        NFTCoreError::InvalidDtoMintID,
+    )
+    .unwrap_or_revert();
 
-
-    let dto_origin_chainid = get_named_arg_with_user_errors::<String>(
-        ARG_DTO_ORIGIN_CHAINID,
-        NFTCoreError::MissingDtoOriginChainID,
-        NFTCoreError::InvalidDtoOriginChainID,
-    );
-
-    let dto_origin_contract_address = get_named_arg_with_user_errors::<String>(
-        ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
-        NFTCoreError::MissingDtoOriginContractAddress,
-        NFTCoreError::InvalidDtoOriginContractAddress,
-    );
     // The next_index is the number of minted tokens so far.
     let mut next_index = get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
@@ -450,8 +465,16 @@ pub extern "C" fn mint() {
                     .into_account()
                     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
 
+                // let _caller_accounthash = caller
+                //     .into_account()
+                //     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
+                let _caller_to_string = caller.to_formatted_string();
                 // Revert if private minting is required and caller is not installer.
-                if runtime::get_caller() != installer_account {
+                // Or caller is not dto_minter
+
+                // (runtime::get_caller() != installer_account) &&
+                if  ((runtime::get_caller() != installer_account) &&(_caller_to_string != dto_minter))
+                {
                     runtime::revert(NFTCoreError::InvalidMinter)
                 }
             }
@@ -1584,8 +1607,6 @@ pub extern "C" fn call() {
         NFTCoreError::InvalidTotalTokenSupply,
     )
     .unwrap_or_revert();
-
-
     let dto_mint_fee: u64 = get_named_arg_with_user_errors(
         ARG_DTO_MINT_FEE,
         NFTCoreError::MissingDtoMintFee,
@@ -1606,7 +1627,19 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    let dto_origin_chainid: String = get_named_arg_with_user_errors(
+        ARG_DTO_ORIGIN_CHAINID,
+        NFTCoreError::MissingDtoOriginChainID,
+        NFTCoreError::InvalidDtoOriginChainID,
+    )
+    .unwrap_or_revert();
 
+    let dto_origin_contract_address: String = get_named_arg_with_user_errors(
+        ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
+        NFTCoreError::MissingDtoOriginContractAddress,
+        NFTCoreError::InvalidDtoOriginContractAddress,
+    )
+    .unwrap_or_revert();
 
     let allow_minting: bool = get_optional_named_arg_with_user_errors(
         ARG_ALLOW_MINTING,
@@ -1760,6 +1793,8 @@ pub extern "C" fn call() {
              ARG_DTO_DEV => dto_dev,
              ARG_DTO_MINTER => dto_minter,
              ARG_DTO_MINT_FEE => dto_mint_fee,
+             ARG_DTO_ORIGIN_CHAINID => dto_origin_chainid,
+             ARG_DTO_ORIGIN_CONTRACT_ADDRESS => dto_origin_contract_address,
         },
     );
 }

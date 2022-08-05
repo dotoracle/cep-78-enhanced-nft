@@ -27,6 +27,7 @@ pub const ARG_DTO_ORIGIN_CHAINID:&str = "dto_origin_chainid";
 pub const ARG_DTO_ORIGIN_CONTRACT_ADDRESS:&str = "dto_origin_contract_address";
 pub const ARG_DTO_DEV:&str = "dto_dev";
 pub const ARG_DTO_MINTER : &str = "dto_minter";
+pub const ARG_DTO_MINT_ID : &str = "dto_mint_id";
 
 
 pub const OPERATOR: &str = "operator";
