@@ -473,7 +473,8 @@ pub extern "C" fn mint() {
                 // Or caller is not dto_minter
 
                 // (runtime::get_caller() != installer_account) &&
-                if  ((runtime::get_caller() != installer_account) &&(_caller_to_string != dto_minter))
+                if ((runtime::get_caller() != installer_account)
+                    && (_caller_to_string != dto_minter))
                 {
                     runtime::revert(NFTCoreError::InvalidMinter)
                 }
@@ -665,6 +666,43 @@ pub extern "C" fn mint() {
     runtime::ret(receipt)
 }
 
+// CHANGE MINTER.
+#[no_mangle]
+pub extern "C" fn change_minter() {
+    let dto_minter = get_stored_value_with_user_errors::<String>(
+        DTO_MINTER,
+        NFTCoreError::MissingDtoMinter,
+        NFTCoreError::InvalidDtoMinter,
+    );
+    let dto_new_minter: String = get_named_arg_with_user_errors(
+        ARG_DTO_NEW_MINTER,
+        NFTCoreError::MissingDtoNewMinter,
+        NFTCoreError::InvalidDtoNewMinter,
+    )
+    .unwrap_or_revert();
+
+    let caller = get_verified_caller().unwrap_or_revert();
+    match caller.tag() {
+        KeyTag::Account => {
+            let installer_account = runtime::get_key(INSTALLER)
+                .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
+                .into_account()
+                .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
+
+            let _caller_to_string = caller.to_formatted_string();
+            // Revert if private minting is required and caller is not installer.
+            // Or caller is not dto_minter
+
+            // (runtime::get_caller() != installer_account) &&
+            if ((runtime::get_caller() != installer_account) && (_caller_to_string != dto_minter)) {
+                runtime::revert(NFTCoreError::InvalidMinter)
+            }
+            runtime::put_key(DTO_MINTER, storage::new_uref(dto_new_minter).into());
+        }
+        _ => runtime::revert(NFTCoreError::InvalidKey),
+    }
+    
+}
 // Marks token as burnt. This blocks and future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
@@ -1430,6 +1468,16 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+
+        // This entrypoint CHANGE DTO MINTER
+        let dto_change_minter = EntryPoint::new(
+            ENTRY_POINT_DTO_CHANGE_MINTER,
+            vec![Parameter::new(ARG_DTO_NEW_MINTER, CLType::Key)],
+            CLType::U64,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         // This entrypoint burns the token with provided token_id argument, after which it is no
         // longer possible to transfer it.
         // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with
@@ -1559,6 +1607,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(metadata);
         entry_points.add_entry_point(set_approval_for_all);
         entry_points.add_entry_point(set_token_metadata);
+        entry_points.add_entry_point(dto_change_minter);
         entry_points
     };
 

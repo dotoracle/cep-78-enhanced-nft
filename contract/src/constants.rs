@@ -28,6 +28,8 @@ pub const ARG_DTO_ORIGIN_CONTRACT_ADDRESS:&str = "dto_origin_contract_address";
 pub const ARG_DTO_DEV:&str = "dto_dev";
 pub const ARG_DTO_MINTER : &str = "dto_minter";
 pub const ARG_DTO_MINT_ID : &str = "dto_mint_id";
+pub const ARG_DTO_NEW_MINTER : &str = "dto_new_minter";
+
 
 
 pub const OPERATOR: &str = "operator";
@@ -74,6 +76,7 @@ pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 pub const ENTRY_POINT_METADATA: &str = "metadata";
 pub const ENTRY_POINT_SET_APPROVE_FOR_ALL: &str = "set_approval_for_all";
 pub const ENTRY_POINT_SET_TOKEN_METADATA: &str = "set_token_metadata";
+pub const ENTRY_POINT_DTO_CHANGE_MINTER : &str = "dto_change_minter";
 pub const DTO_MINT_FEE : &str = "dto_mint_fee";
 pub const DTO_ORIGIN_CHAINID : &str = "dto_origin_chainid";
 pub const DTO_ORIGIN_CONTRACT_ADDRESS : &str = "dto_origin_contract_address";

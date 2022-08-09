@@ -120,6 +120,8 @@ pub enum NFTCoreError {
     MissingDtoMintID = 511,
     InvalidDtoMintID = 512,
     MissingMinterKey = 513,
+    MissingDtoNewMinter = 514,
+    InvalidDtoNewMinter = 515,
 }
 
 impl From<NFTCoreError> for ApiError {
