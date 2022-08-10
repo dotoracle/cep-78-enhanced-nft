@@ -205,39 +205,40 @@ pub extern "C" fn init() {
 
     // INSERT MORE ARGUMENTS
 
-    let dto_mint_fee: u64 = get_named_arg_with_user_errors(
+    let dto_mint_fee: u64 = utils::get_named_arg_with_user_errors(
         ARG_DTO_MINT_FEE,
         NFTCoreError::MissingDtoMintFee,
         NFTCoreError::InvalidDtoMintFee,
     )
     .unwrap_or_revert();
 
-    let dto_dev: String = get_named_arg_with_user_errors(
+    let dto_dev: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_DEV,
         NFTCoreError::MissingDtoDev,
         NFTCoreError::InvalidDtoDev,
     )
     .unwrap_or_revert();
 
-    let dto_minter: String = get_named_arg_with_user_errors(
+    let dto_minter: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     )
     .unwrap_or_revert();
 
-    let dto_origin_chainid: String = get_named_arg_with_user_errors(
+    let dto_origin_chainid: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_ORIGIN_CHAINID,
         NFTCoreError::MissingDtoOriginChainID,
         NFTCoreError::InvalidDtoOriginChainID,
     )
     .unwrap_or_revert();
 
-    let dto_origin_contract_address: String = get_named_arg_with_user_errors(
+    let dto_origin_contract_address: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
         NFTCoreError::MissingDtoOriginContractAddress,
         NFTCoreError::InvalidDtoOriginContractAddress,
     )
+    .unwrap_or_revert();
     let burn_mode: BurnMode = utils::get_named_arg_with_user_errors::<u8>(
         ARG_BURN_MODE,
         NFTCoreError::MissingBurnMode,
@@ -415,23 +416,23 @@ pub extern "C" fn mint() {
     );
 
     // ADD MORE ARGUMENTS
-    let dto_mint_fee = get_stored_value_with_user_errors::<u64>(
+    let dto_mint_fee = utils::get_stored_value_with_user_errors::<u64>(
         DTO_MINT_FEE,
         NFTCoreError::MissingDtoMintFee,
         NFTCoreError::InvalidDtoMintFee,
     );
-    let dto_dev = get_stored_value_with_user_errors::<String>(
+    let dto_dev = utils::get_stored_value_with_user_errors::<String>(
         DTO_DEV,
         NFTCoreError::MissingDtoDev,
         NFTCoreError::InvalidDtoDev,
     );
 
-    let dto_minter = get_stored_value_with_user_errors::<String>(
+    let dto_minter = utils::get_stored_value_with_user_errors::<String>(
         DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     );
-    let dto_mint_id = get_named_arg_with_user_errors::<String>(
+    let dto_mint_id = utils::get_named_arg_with_user_errors::<String>(
         ARG_DTO_MINT_ID,
         NFTCoreError::MissingDtoMintID,
         NFTCoreError::InvalidDtoMintID,
@@ -693,19 +694,19 @@ pub extern "C" fn mint() {
 // CHANGE MINTER.
 #[no_mangle]
 pub extern "C" fn change_minter() {
-    let dto_minter = get_stored_value_with_user_errors::<String>(
+    let dto_minter = utils::get_stored_value_with_user_errors::<String>(
         DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     );
-    let dto_new_minter: String = get_named_arg_with_user_errors(
+    let dto_new_minter: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_NEW_MINTER,
         NFTCoreError::MissingDtoNewMinter,
         NFTCoreError::InvalidDtoNewMinter,
     )
     .unwrap_or_revert();
 
-    let caller = get_verified_caller().unwrap_or_revert();
+    let caller = utils::get_verified_caller().unwrap_or_revert();
     match caller.tag() {
         KeyTag::Account => {
             let installer_account = runtime::get_key(INSTALLER)
@@ -1633,34 +1634,34 @@ pub extern "C" fn call() {
         NFTCoreError::InvalidTotalTokenSupply,
     )
     .unwrap_or_revert();
-    let dto_mint_fee: u64 = get_named_arg_with_user_errors(
+    let dto_mint_fee: u64 = utils::get_named_arg_with_user_errors(
         ARG_DTO_MINT_FEE,
         NFTCoreError::MissingDtoMintFee,
         NFTCoreError::InvalidDtoMintFee,
     )
     .unwrap_or_revert();
 
-    let dto_dev: String = get_named_arg_with_user_errors(
+    let dto_dev: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_DEV,
         NFTCoreError::MissingDtoDev,
         NFTCoreError::InvalidDtoDev,
     )
     .unwrap_or_revert();
-    let dto_minter: String = get_named_arg_with_user_errors(
+    let dto_minter: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     )
     .unwrap_or_revert();
 
-    let dto_origin_chainid: String = get_named_arg_with_user_errors(
+    let dto_origin_chainid: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_ORIGIN_CHAINID,
         NFTCoreError::MissingDtoOriginChainID,
         NFTCoreError::InvalidDtoOriginChainID,
     )
     .unwrap_or_revert();
 
-    let dto_origin_contract_address: String = get_named_arg_with_user_errors(
+    let dto_origin_contract_address: String = utils::get_named_arg_with_user_errors(
         ARG_DTO_ORIGIN_CONTRACT_ADDRESS,
         NFTCoreError::MissingDtoOriginContractAddress,
         NFTCoreError::InvalidDtoOriginContractAddress,
@@ -1831,15 +1832,12 @@ pub extern "C" fn call() {
              ARG_NFT_METADATA_KIND => nft_metadata_kind,
              ARG_IDENTIFIER_MODE => identifier_mode,
              ARG_METADATA_MUTABILITY => metadata_mutability,
-<<<<<<< HEAD
              ARG_DTO_DEV => dto_dev,
              ARG_DTO_MINTER => dto_minter,
              ARG_DTO_MINT_FEE => dto_mint_fee,
              ARG_DTO_ORIGIN_CHAINID => dto_origin_chainid,
              ARG_DTO_ORIGIN_CONTRACT_ADDRESS => dto_origin_contract_address,
-=======
              ARG_BURN_MODE => burn_mode
->>>>>>> origin/contract-approval-check
         },
     );
 }
