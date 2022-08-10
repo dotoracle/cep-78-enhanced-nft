@@ -107,6 +107,8 @@ pub enum NFTCoreError {
     InvalidMetadataMutability = 102,
     FailedToJsonifyCustomMetadata = 103,
     ForbiddenMetadataUpdate = 104,
+    MissingBurnMode = 105,
+    InvalidBurnMode = 106,
     MissingDtoMintFee = 501,
     InvalidDtoMintFee = 502,
     MissingDtoOriginChainID = 503,
