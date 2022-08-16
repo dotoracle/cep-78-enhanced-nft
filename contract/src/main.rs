@@ -20,11 +20,12 @@ use alloc::{
     vec::Vec,
 };
 use core::convert::TryInto;
+use utils::{get_dictionary_value_from_key, get_uref, upsert_dictionary_value_from_key};
 
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
     ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag,
-    Parameter, RuntimeArgs, Tagged,
+    Parameter, RuntimeArgs, U256,
 };
 
 use casper_contract::{
@@ -219,7 +220,7 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    let dto_minter: String = utils::get_named_arg_with_user_errors(
+    let dto_minter: Key = utils::get_named_arg_with_user_errors(
         ARG_DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
@@ -252,6 +253,8 @@ pub extern "C" fn init() {
     // for future use).
     //
     // Initialize contract with URefs for all invariant values, which can never be changed.
+    runtime::put_key(DTO_REQUEST_INDEX, storage::new_uref(U256::one()).into());
+
     runtime::put_key(COLLECTION_NAME, storage::new_uref(collection_name).into());
     runtime::put_key(
         COLLECTION_SYMBOL,
@@ -332,6 +335,10 @@ pub extern "C" fn init() {
     storage::new_dictionary(METADATA_NFT721)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_RAW)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(DTO_MINT_IDS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(DTO_REQUEST_IDS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 }
 
@@ -416,28 +423,38 @@ pub extern "C" fn mint() {
     );
 
     // ADD MORE ARGUMENTS
-    let dto_mint_fee = utils::get_stored_value_with_user_errors::<u64>(
-        DTO_MINT_FEE,
-        NFTCoreError::MissingDtoMintFee,
-        NFTCoreError::InvalidDtoMintFee,
-    );
-    let dto_dev = utils::get_stored_value_with_user_errors::<String>(
-        DTO_DEV,
-        NFTCoreError::MissingDtoDev,
-        NFTCoreError::InvalidDtoDev,
-    );
+    // let dto_mint_fee = utils::get_stored_value_with_user_errors::<u64>(
+    //     DTO_MINT_FEE,
+    //     NFTCoreError::MissingDtoMintFee,
+    //     NFTCoreError::InvalidDtoMintFee,
+    // );
+    // let dto_dev = utils::get_stored_value_with_user_errors::<String>(
+    //     DTO_DEV,
+    //     NFTCoreError::MissingDtoDev,
+    //     NFTCoreError::InvalidDtoDev,
+    // );
 
-    let dto_minter = utils::get_stored_value_with_user_errors::<String>(
-        DTO_MINTER,
-        NFTCoreError::MissingDtoMinter,
-        NFTCoreError::InvalidDtoMinter,
-    );
+    // let dto_minter = utils::get_stored_value_with_user_errors::<String>(
+    //     DTO_MINTER,
+    //     NFTCoreError::MissingDtoMinter,
+    //     NFTCoreError::InvalidDtoMinter,
+    // );
+
     let dto_mint_id = utils::get_named_arg_with_user_errors::<String>(
-        ARG_DTO_MINT_ID,
+        ARG_MINT_ID,
         NFTCoreError::MissingDtoMintID,
         NFTCoreError::InvalidDtoMintID,
     )
     .unwrap_or_revert();
+    let mint_id_key = utils::get_mint_id_dict_key(&dto_mint_id);
+
+    let exist = get_dictionary_value_from_key::<u64>(DTO_MINT_IDS, &mint_id_key);
+    if exist.is_some() {
+        runtime::revert(NFTCoreError::DTOMintIdExist);
+    }
+
+    upsert_dictionary_value_from_key(DTO_MINT_IDS, &mint_id_key, 1 as u64);
+    //todo:: save dto_mint_id to avoid double spend
 
     // The next_index is the number of minted tokens so far.
     let mut next_index = utils::get_stored_value_with_user_errors::<u64>(
@@ -462,44 +479,13 @@ pub extern "C" fn mint() {
     // Revert if minting is private and caller is not installer.
     if let MintingMode::Installer = minting_mode {
         let caller = utils::get_verified_caller().unwrap_or_revert();
-        match caller.tag() {
-            KeyTag::Hash => {
-                let calling_contract = caller
-                    .into_hash()
-                    .map(ContractHash::new)
-                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-                let contract_whitelist =
-                    utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
-                        CONTRACT_WHITELIST,
-                        NFTCoreError::MissingWhitelistMode,
-                        NFTCoreError::InvalidWhitelistMode,
-                    );
-                // Revert if the calling contract is not in the whitelist.
-                if !contract_whitelist.contains(&calling_contract) {
-                    runtime::revert(NFTCoreError::UnlistedContractHash)
-                }
-            }
-            KeyTag::Account => {
-                let installer_account = runtime::get_key(INSTALLER)
-                    .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
-                    .into_account()
-                    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
-
-                // let _caller_accounthash = caller
-                //     .into_account()
-                //     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
-                let _caller_to_string = caller.to_formatted_string();
-                // Revert if private minting is required and caller is not installer.
-                // Or caller is not dto_minter
-
-                // (runtime::get_caller() != installer_account) &&
-                if ((runtime::get_caller() != installer_account)
-                    && (_caller_to_string != dto_minter))
-                {
-                    runtime::revert(NFTCoreError::InvalidMinter)
-                }
-            }
-            _ => runtime::revert(NFTCoreError::InvalidKey),
+        let minter = utils::get_stored_value_with_user_errors::<Key>(
+            DTO_MINTER,
+            NFTCoreError::MissingDtoMinter,
+            NFTCoreError::InvalidDtoMinter,
+        );
+        if caller != minter {
+            runtime::revert(NFTCoreError::InvalidMinter);
         }
     }
 
@@ -522,15 +508,20 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
-    let token_metadata = utils::get_named_arg_with_user_errors::<String>(
-        ARG_TOKEN_META_DATA,
+    let token_metadatas = utils::get_named_arg_with_user_errors::<Vec<String>>(
+        ARG_TOKEN_META_DATAS,
         NFTCoreError::MissingTokenMetaData,
         NFTCoreError::InvalidTokenMetaData,
     )
     .unwrap_or_revert();
 
+    let mut metadatas: Vec<String> = Vec::new();
     // Get token metadata if valid.
-    let metadata = metadata::validate_metadata(&metadata_kind, token_metadata).unwrap_or_revert();
+    for token_metadata in &token_metadatas {
+        let metadata =
+            metadata::validate_metadata(&metadata_kind, token_metadata.clone()).unwrap_or_revert();
+        metadatas.push(metadata.clone());
+    }
 
     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
         IDENTIFIER_MODE,
@@ -540,166 +531,212 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
-    // This is the token ID.
-    let token_identifier: TokenIdentifier = match identifier_mode {
-        NFTIdentifierMode::Ordinal => TokenIdentifier::Index(next_index),
-        NFTIdentifierMode::Hash => {
-            TokenIdentifier::Hash(base16::encode_lower(&runtime::blake2b(&metadata)))
-            //TokenIdentifier::Hash(base16::encode_lower("
-            // FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"))
-        }
-    };
+    let token_identifiers = utils::get_token_identifiers_from_runtime_args(&identifier_mode);
 
-    utils::upsert_dictionary_value_from_key(
-        TOKEN_OWNERS,
-        &token_identifier.get_dictionary_item_key(),
-        token_owner_key,
-    );
-    utils::upsert_dictionary_value_from_key(
-        TOKEN_ISSUERS,
-        &token_identifier.get_dictionary_item_key(),
-        token_owner_key,
-    );
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        metadata,
-    );
+    if token_identifiers.len() != metadatas.len() {
+        runtime::revert(NFTCoreError::InvalidMetadataLength);
+    }
 
-    let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
+    for i in 0..token_identifiers.len() {
+        let token_identifier = token_identifiers[i].clone();
+        let metadata = metadatas[i].clone();
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_OWNERS,
+            &token_identifier.get_dictionary_item_key(),
+            token_owner_key,
+        );
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_ISSUERS,
+            &token_identifier.get_dictionary_item_key(),
+            token_owner_key,
+        );
+        utils::upsert_dictionary_value_from_key(
+            &metadata::get_metadata_dictionary_name(&metadata_kind),
+            &token_identifier.get_dictionary_item_key(),
+            metadata,
+        );
 
-    let owned_tokens_actual_key = Key::dictionary(
-        utils::get_uref(
-            OWNED_TOKENS,
-            NFTCoreError::MissingOwnedTokens,
-            NFTCoreError::InvalidOwnedTokens,
-        ),
-        owned_tokens_item_key.as_bytes(),
-    );
-
-    // Update owned tokens dictionary
-    let maybe_owned_tokens: Option<Vec<TokenIdentifier>> = {
-        match identifier_mode {
-            NFTIdentifierMode::Ordinal => utils::get_dictionary_value_from_key::<Vec<u64>>(
+        let owned_tokens_item_key = utils::get_owned_tokens_dictionary_item_key(token_owner_key);
+        let owned_tokens_actual_key = Key::dictionary(
+            utils::get_uref(
                 OWNED_TOKENS,
-                &owned_tokens_item_key,
-            )
-            .map(|token_indices| {
-                token_indices
-                    .into_iter()
-                    .map(TokenIdentifier::new_index)
-                    .collect()
-            }),
-            NFTIdentifierMode::Hash => utils::get_dictionary_value_from_key::<Vec<String>>(
-                OWNED_TOKENS,
-                &owned_tokens_item_key,
-            )
-            .map(|token_hashes| {
-                token_hashes
-                    .into_iter()
-                    .map(TokenIdentifier::new_hash)
-                    .collect()
-            }),
-        }
-    };
+                NFTCoreError::MissingOwnedTokens,
+                NFTCoreError::InvalidOwnedTokens,
+            ),
+            owned_tokens_item_key.as_bytes(),
+        );
 
-    // Update the value in the owned_tokens dictionary.
-    match maybe_owned_tokens {
-        Some(mut owned_tokens) => {
-            // Check that we are not minting a duplicate token.
-            if owned_tokens.contains(&token_identifier) {
-                runtime::revert(NFTCoreError::FatalTokenIdDuplication);
-            }
-
-            owned_tokens.push(token_identifier.clone());
+        // Update owned tokens dictionary
+        let maybe_owned_tokens: Option<Vec<TokenIdentifier>> = {
             match identifier_mode {
-                NFTIdentifierMode::Ordinal => {
-                    let token_indices: Vec<u64> = owned_tokens
-                        .into_iter()
-                        .map(|identifier| identifier.get_index().unwrap_or_revert())
-                        .collect();
-                    utils::upsert_dictionary_value_from_key(
-                        OWNED_TOKENS,
-                        &owned_tokens_item_key,
-                        token_indices,
-                    )
-                }
-                NFTIdentifierMode::Hash => {
-                    let token_hashes: Vec<String> = owned_tokens
-                        .into_iter()
-                        .map(|identifier| identifier.get_hash().unwrap_or_revert())
-                        .collect();
-                    utils::upsert_dictionary_value_from_key(
-                        OWNED_TOKENS,
-                        &owned_tokens_item_key,
-                        token_hashes,
-                    )
-                }
-            }
-        }
-        None => {
-            match identifier_mode {
-                NFTIdentifierMode::Ordinal => utils::upsert_dictionary_value_from_key(
+                NFTIdentifierMode::Ordinal => utils::get_dictionary_value_from_key::<Vec<u64>>(
                     OWNED_TOKENS,
                     &owned_tokens_item_key,
-                    vec![token_identifier.get_index().unwrap_or_revert()],
-                ),
-                NFTIdentifierMode::Hash => utils::upsert_dictionary_value_from_key(
+                )
+                .map(|token_indices| {
+                    token_indices
+                        .into_iter()
+                        .map(TokenIdentifier::new_index)
+                        .collect()
+                }),
+                NFTIdentifierMode::Hash => utils::get_dictionary_value_from_key::<Vec<String>>(
                     OWNED_TOKENS,
                     &owned_tokens_item_key,
-                    vec![token_identifier.clone().get_hash().unwrap_or_revert()],
-                ),
-            };
-        }
-    };
-
-    //Increment the count of owned tokens.
-    let updated_token_count =
-        match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key) {
-            Some(balance) => balance + 1u64,
-            None => 1u64,
+                )
+                .map(|token_hashes| {
+                    token_hashes
+                        .into_iter()
+                        .map(TokenIdentifier::new_hash)
+                        .collect()
+                }),
+            }
         };
-    utils::upsert_dictionary_value_from_key(
-        TOKEN_COUNTS,
-        &owned_tokens_item_key,
-        updated_token_count,
-    );
 
-    // Increment number_of_minted_tokens by one
-    next_index += 1u64;
-    let number_of_minted_tokens_uref = utils::get_uref(
-        NUMBER_OF_MINTED_TOKENS,
-        NFTCoreError::MissingTotalTokenSupply,
-        NFTCoreError::InvalidTotalTokenSupply,
-    );
-    storage::write(number_of_minted_tokens_uref, next_index);
+        // Update the value in the owned_tokens dictionary.
+        match maybe_owned_tokens {
+            Some(mut owned_tokens) => {
+                // Check that we are not minting a duplicate token.
+                if owned_tokens.contains(&token_identifier) {
+                    runtime::revert(NFTCoreError::FatalTokenIdDuplication);
+                }
 
-    let receipt_name = utils::get_stored_value_with_user_errors::<String>(
-        RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    );
+                owned_tokens.push(token_identifier.clone());
+                match identifier_mode {
+                    NFTIdentifierMode::Ordinal => {
+                        let token_indices: Vec<u64> = owned_tokens
+                            .into_iter()
+                            .map(|identifier| identifier.get_index().unwrap_or_revert())
+                            .collect();
+                        utils::upsert_dictionary_value_from_key(
+                            OWNED_TOKENS,
+                            &owned_tokens_item_key,
+                            token_indices,
+                        )
+                    }
+                    NFTIdentifierMode::Hash => {
+                        let token_hashes: Vec<String> = owned_tokens
+                            .into_iter()
+                            .map(|identifier| identifier.get_hash().unwrap_or_revert())
+                            .collect();
+                        utils::upsert_dictionary_value_from_key(
+                            OWNED_TOKENS,
+                            &owned_tokens_item_key,
+                            token_hashes,
+                        )
+                    }
+                }
+            }
+            None => {
+                match identifier_mode {
+                    NFTIdentifierMode::Ordinal => utils::upsert_dictionary_value_from_key(
+                        OWNED_TOKENS,
+                        &owned_tokens_item_key,
+                        vec![token_identifier.get_index().unwrap_or_revert()],
+                    ),
+                    NFTIdentifierMode::Hash => utils::upsert_dictionary_value_from_key(
+                        OWNED_TOKENS,
+                        &owned_tokens_item_key,
+                        vec![token_identifier.clone().get_hash().unwrap_or_revert()],
+                    ),
+                };
+            }
+        };
 
-    let token_identifier_string = token_identifier.get_dictionary_item_key();
+        //Increment the count of owned tokens.
+        let updated_token_count =
+            match utils::get_dictionary_value_from_key::<u64>(TOKEN_COUNTS, &owned_tokens_item_key)
+            {
+                Some(balance) => balance + 1u64,
+                None => 1u64,
+            };
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_COUNTS,
+            &owned_tokens_item_key,
+            updated_token_count,
+        );
 
-    let receipt = CLValue::from_t((
-        receipt_name,
-        owned_tokens_actual_key,
-        token_identifier_string,
-    ))
-    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-    runtime::ret(receipt)
+        // Increment number_of_minted_tokens by one
+        next_index += 1u64;
+        let number_of_minted_tokens_uref = utils::get_uref(
+            NUMBER_OF_MINTED_TOKENS,
+            NFTCoreError::MissingTotalTokenSupply,
+            NFTCoreError::InvalidTotalTokenSupply,
+        );
+        storage::write(number_of_minted_tokens_uref, next_index);
+
+        let receipt_name = utils::get_stored_value_with_user_errors::<String>(
+            RECEIPT_NAME,
+            NFTCoreError::MissingReceiptName,
+            NFTCoreError::InvalidReceiptName,
+        );
+
+        let token_identifier_string = token_identifier.get_dictionary_item_key();
+
+        let receipt = CLValue::from_t((
+            receipt_name,
+            owned_tokens_actual_key,
+            token_identifier_string,
+        ))
+        .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+        runtime::ret(receipt)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn request_bridge_back() {
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    let token_identifiers = utils::get_token_identifiers_from_runtime_args(&identifier_mode);
+    let caller: Key = utils::get_verified_caller().unwrap_or_revert();
+
+    if token_identifiers.len() > 10 {
+        runtime::revert(NFTCoreError::TooManyTokenIds);
+    }
+
+    for token_identifier in &token_identifiers {
+        _burn(token_identifier, &caller);
+    }
+
+    let current_index: U256 = utils::get_stored_value_with_user_errors(DTO_REQUEST_INDEX, NFTCoreError::MissingRequestIndex, NFTCoreError::InvalidRequestIndex);
+    let next_index = current_index.checked_add(U256::one()).unwrap();
+
+    let request_id: String = runtime::get_named_arg(ARG_REQUEST_ID);
+    if request_id.chars().count() != 64 {
+        runtime::revert(NFTCoreError::RequestIdIlledFormat);
+    }
+    let decoded = hex::decode(&request_id);
+    if decoded.is_err() {
+        runtime::revert(NFTCoreError::RequestIdIlledFormat);
+    }
+    if request_id.len() != 64 || decoded.unwrap().len() != 32 {
+        runtime::revert(NFTCoreError::RequestIdIlledFormat);
+    }
+
+    let request_id_key = utils::get_request_id_dict_key(&request_id);
+    let exist = utils::get_dictionary_value_from_key::<U256>(DTO_REQUEST_IDS, &request_id_key);
+    if exist.is_some() {
+        runtime::revert(NFTCoreError::RequestIdRepeated);
+    }
+    utils::upsert_dictionary_value_from_key(DTO_REQUEST_IDS, &request_id_key, next_index);
+    let request_index_uref = utils::get_uref(DTO_REQUEST_INDEX, NFTCoreError::MissingRequestIndex, NFTCoreError::InvalidRequestIndex);
+    storage::write(request_index_uref, next_index);
 }
 
 // CHANGE MINTER.
 #[no_mangle]
-pub extern "C" fn change_minter() {
-    let dto_minter = utils::get_stored_value_with_user_errors::<String>(
+pub extern "C" fn dto_change_minter() {
+    let dto_minter = utils::get_stored_value_with_user_errors::<Key>(
         DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,
     );
-    let dto_new_minter: String = utils::get_named_arg_with_user_errors(
+    let dto_new_minter: Key = utils::get_named_arg_with_user_errors(
         ARG_DTO_NEW_MINTER,
         NFTCoreError::MissingDtoNewMinter,
         NFTCoreError::InvalidDtoNewMinter,
@@ -707,26 +744,17 @@ pub extern "C" fn change_minter() {
     .unwrap_or_revert();
 
     let caller = utils::get_verified_caller().unwrap_or_revert();
-    match caller.tag() {
-        KeyTag::Account => {
-            let installer_account = runtime::get_key(INSTALLER)
-                .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
-                .into_account()
-                .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
-
-            let _caller_to_string = caller.to_formatted_string();
-            // Revert if private minting is required and caller is not installer.
-            // Or caller is not dto_minter
-
-            // (runtime::get_caller() != installer_account) &&
-            if ((runtime::get_caller() != installer_account) && (_caller_to_string != dto_minter)) {
-                runtime::revert(NFTCoreError::InvalidMinter)
-            }
-            runtime::put_key(DTO_MINTER, storage::new_uref(dto_new_minter).into());
-        }
-        _ => runtime::revert(NFTCoreError::InvalidKey),
+    if caller != dto_minter {
+        runtime::revert(NFTCoreError::InvalidMinter);
     }
-    
+
+    let minter_uref = get_uref(
+        DTO_MINTER,
+        NFTCoreError::MissingDtoMinter,
+        NFTCoreError::InvalidDtoMinter,
+    );
+
+    storage::write(minter_uref, dto_new_minter);
 }
 // Marks token as burnt. This blocks and future call to transfer token.
 #[no_mangle]
@@ -747,24 +775,27 @@ pub extern "C" fn burn() {
 
     let expected_token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
 
+    _burn(&token_identifier, &expected_token_owner);
+}
+
+fn _burn(token_identifier: &TokenIdentifier, expected_token_owner: &Key) {
     // Revert if caller is not token_owner. This seems to be the only check we need to do.
     let token_owner = match utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
     ) {
         Some(token_owner_key) => {
-            if token_owner_key != expected_token_owner {
+            if token_owner_key != *expected_token_owner {
                 runtime::revert(NFTCoreError::InvalidTokenOwner)
             }
             token_owner_key
         }
         None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
     };
-
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the
     // owned_tokens dictionary.
-    if utils::is_token_burned(&token_identifier) {
+    if utils::is_token_burned(token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
@@ -1406,6 +1437,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_RECEIPT_NAME, CLType::String),
                 Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
                 Parameter::new(ARG_BURN_MODE, CLType::U8),
+                Parameter::new(ARG_DTO_MINTER, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1453,7 +1485,10 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             ENTRY_POINT_MINT,
             vec![
                 Parameter::new(ARG_TOKEN_OWNER, CLType::Key),
-                Parameter::new(ARG_TOKEN_META_DATA, CLType::String),
+                Parameter::new(ARG_TOKEN_META_DATAS, CLType::List(Box::new(CLType::String))),
+                Parameter::new(ARG_MINT_ID, CLType::String),
+                Parameter::new(ARG_TOKEN_IDS, CLType::List(Box::new(CLType::U64))),
+                Parameter::new(ARG_TOKEN_HASHES, CLType::List(Box::new(CLType::String))),
             ],
             CLType::Tuple3([
                 Box::new(CLType::String),
@@ -1464,12 +1499,26 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-
         // This entrypoint CHANGE DTO MINTER
         let dto_change_minter = EntryPoint::new(
             ENTRY_POINT_DTO_CHANGE_MINTER,
             vec![Parameter::new(ARG_DTO_NEW_MINTER, CLType::Key)],
             CLType::U64,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        let request_bridge_back = EntryPoint::new(
+            ENTRY_POINT_REQUEST_BRIDGE_BACK,
+            vec![
+                Parameter::new(ARG_TOKEN_IDS, CLType::List(Box::new(CLType::U64))),
+                Parameter::new(ARG_TOKEN_HASHES, CLType::List(Box::new(CLType::String))),
+                Parameter::new(ARG_TO_CHAINID, CLType::U256),
+                Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
+                Parameter::new(ARG_RECEIVER_ADDRESS, CLType::String),
+                Parameter::new(ARG_REQUEST_ID, CLType::String),
+            ],
+            CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
         );
@@ -1576,6 +1625,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
+        entry_points.add_entry_point(request_bridge_back);
         entry_points.add_entry_point(burn);
         entry_points.add_entry_point(transfer);
         entry_points.add_entry_point(approve);
@@ -1647,7 +1697,7 @@ pub extern "C" fn call() {
         NFTCoreError::InvalidDtoDev,
     )
     .unwrap_or_revert();
-    let dto_minter: String = utils::get_named_arg_with_user_errors(
+    let dto_minter: Key = utils::get_named_arg_with_user_errors::<Key>(
         ARG_DTO_MINTER,
         NFTCoreError::MissingDtoMinter,
         NFTCoreError::InvalidDtoMinter,

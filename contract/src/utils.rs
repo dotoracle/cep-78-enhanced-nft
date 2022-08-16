@@ -20,7 +20,7 @@ use casper_types::{
 };
 
 use crate::{
-    constants::{ARG_TOKEN_HASH, ARG_TOKEN_ID, HOLDER_MODE, OWNED_TOKENS, OWNERSHIP_MODE},
+    constants::*,
     error::NFTCoreError,
     modalities::{NFTHolderMode, NFTIdentifierMode, OwnershipMode, TokenIdentifier},
     BurnMode, BURNT_TOKENS, BURN_MODE,
@@ -149,6 +149,16 @@ pub(crate) fn get_named_arg_with_user_errors<T: FromBytes>(
     };
 
     bytesrepr::deserialize(arg_bytes).map_err(|_| invalid)
+}
+
+pub(crate) fn get_mint_id_dict_key(mintid: &String) -> String {
+    let mint_id_bytes = mintid.as_bytes();
+    let key_bytes = runtime::blake2b(mint_id_bytes);
+    hex::encode(&key_bytes)
+}
+
+pub(crate) fn get_request_id_dict_key(request_id: &String) -> String {
+    request_id.clone()
 }
 
 pub(crate) fn get_account_hash(
@@ -308,6 +318,31 @@ pub(crate) fn get_token_identifier_from_runtime_args(
         )
         .map(TokenIdentifier::new_hash)
         .unwrap_or_revert(),
+    }
+}
+
+pub(crate) fn get_token_identifiers_from_runtime_args(
+    identifier_mode: &NFTIdentifierMode,
+) -> Vec<TokenIdentifier> {
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<Vec<u64>>(
+            ARG_TOKEN_IDS,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
+        )
+        .unwrap_or_revert()
+        .iter()
+        .map(|identifier| TokenIdentifier::new_index(*identifier))
+        .collect::<Vec<_>>(),
+        NFTIdentifierMode::Hash => get_named_arg_with_user_errors::<Vec<String>>(
+            ARG_TOKEN_HASHES,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
+        )
+        .unwrap_or_revert()
+        .iter()
+        .map(|identier| TokenIdentifier::new_hash(identier.clone()))
+        .collect::<Vec<_>>(),
     }
 }
 

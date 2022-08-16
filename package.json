@@ -1,0 +1,38 @@
+{
+  "name": "js-cep78",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "mint": "node -r esm src/mint.js",
+    "2mint": "node -r esm src/mint2.js",
+    "balanceof": "node -r esm src/getBalance.js",
+    "deploy": "node -r esm src/deployContract.js",
+    "transfer": "node -r esm src/transferNFT.js",
+    "2transfer": "node -r esm src/transfer2.js",
+    "state": "node -r esm src/checkStateRootHash.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bignumber.js": "^9.0.2",
+    "casper-js-client-helper": "^1.0.1",
+    "casper-js-sdk": "^2.9.1",
+    "config": "^3.3.7",
+    "esm": "^3.2.25",
+    "libp2p": "^0.36.2",
+    "libp2p-bootstrap": "^0.14.0",
+    "libp2p-gossipsub": "^0.13.0",
+    "libp2p-mdns": "^0.16.0",
+    "libp2p-mplex": "^0.10.0",
+    "libp2p-noise": "^2.0.0",
+    "libp2p-tcp": "^0.17.2",
+    "libp2p-webrtc-star": "^0.25.0",
+    "libp2p-websockets": "^0.16.2",
+    "lodash": "^4.17.21",
+    "mongoose": "^5.13.9",
+    "peer-id": "^0.16.0",
+    "uint8arrays": "^2.1.5",
+    "winston": "^3.8.1"
+  }
+}

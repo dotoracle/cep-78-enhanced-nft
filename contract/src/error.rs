@@ -124,6 +124,15 @@ pub enum NFTCoreError {
     MissingMinterKey = 513,
     MissingDtoNewMinter = 514,
     InvalidDtoNewMinter = 515,
+    InvalidMetadataLength = 516,
+    DTOMintIdExist = 517,
+    TooManyTokenIds = 518,
+    MissingRequestIndex = 519,
+    InvalidRequestIndex = 520,
+    MissingRequestId = 521,
+    InvalidRequestId = 522,
+    RequestIdIlledFormat = 523,
+    RequestIdRepeated = 524
 }
 
 impl From<NFTCoreError> for ApiError {

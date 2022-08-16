@@ -4,11 +4,19 @@ pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const ARG_TOKEN_ID: &str = "token_id";
 pub const ARG_TOKEN_HASH: &str = "token_hash";
 pub const ARG_TOKEN_OWNER: &str = "token_owner";
+pub const ARG_TOKEN_IDS: &str = "token_ids";
+pub const ARG_RECEIVER_ADDRESS: &str = "receiver_address";
+pub const ARG_REQUEST_ID: &str = "request_id";
+pub const ARG_TO_CHAINID:  &str = "to_chainid";
+pub const ARG_FROM_CHAINID:  &str = "from_chainid";
+pub const ARG_TOKEN_HASHES: &str = "token_hashes";
 pub const ARG_TARGET_KEY: &str = "target_key";
 pub const ARG_SOURCE_KEY: &str = "source_key";
 pub const ARG_ALLOW_MINTING: &str = "allow_minting";
 pub const ARG_MINTING_MODE: &str = "minting_mode";
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
+pub const ARG_TOKEN_META_DATAS: &str = "token_meta_datas";
+pub const ARG_MINT_ID: &str = "mint_id";
 pub const ARG_APPROVE_ALL: &str = "approve_all";
 pub const ARG_OPERATOR: &str = "operator";
 pub const ARG_OWNERSHIP_MODE: &str = "ownership_mode";
@@ -26,7 +34,6 @@ pub const ARG_DTO_ORIGIN_CHAINID:&str = "dto_origin_chainid";
 pub const ARG_DTO_ORIGIN_CONTRACT_ADDRESS:&str = "dto_origin_contract_address";
 pub const ARG_DTO_DEV:&str = "dto_dev";
 pub const ARG_DTO_MINTER : &str = "dto_minter";
-pub const ARG_DTO_MINT_ID : &str = "dto_mint_id";
 pub const ARG_DTO_NEW_MINTER : &str = "dto_new_minter";
 
 
@@ -69,6 +76,7 @@ pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_MINT: &str = "mint";
 pub const ENTRY_POINT_BURN: &str = "burn";
+pub const ENTRY_POINT_REQUEST_BRIDGE_BACK: &str = "burn";
 pub const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub const ENTRY_POINT_APPROVE: &str = "approve";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
@@ -83,4 +91,7 @@ pub const DTO_ORIGIN_CHAINID : &str = "dto_origin_chainid";
 pub const DTO_ORIGIN_CONTRACT_ADDRESS : &str = "dto_origin_contract_address";
 pub const DTO_DEV : &str = "dto_dev";
 pub const DTO_MINTER : &str = "dto_minter";
- 
+pub const DTO_REQUEST_IDS: &str = "request_ids";
+pub const DTO_MINT_IDS: &str = "mintids";
+pub const DTO_REQUEST_INDEX: &str = "request_index";
+
