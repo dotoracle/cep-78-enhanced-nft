@@ -36,23 +36,7 @@ use casper_contract::{
 };
 
 use crate::{
-    constants::{
-        ACCESS_KEY_NAME, ALLOW_MINTING, ARG_ALLOW_MINTING, ARG_APPROVE_ALL, ARG_BURN_MODE,
-        ARG_COLLECTION_NAME, ARG_COLLECTION_SYMBOL, ARG_CONTRACT_WHITELIST, ARG_HOLDER_MODE,
-        ARG_IDENTIFIER_MODE, ARG_JSON_SCHEMA, ARG_METADATA_MUTABILITY, ARG_MINTING_MODE,
-        ARG_NFT_KIND, ARG_NFT_METADATA_KIND, ARG_OPERATOR, ARG_OWNERSHIP_MODE, ARG_RECEIPT_NAME,
-        ARG_SOURCE_KEY, ARG_TARGET_KEY, ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER,
-        ARG_TOTAL_TOKEN_SUPPLY, ARG_WHITELIST_MODE, BURNT_TOKENS, BURN_MODE, COLLECTION_NAME,
-        COLLECTION_SYMBOL, CONTRACT_NAME, CONTRACT_VERSION, CONTRACT_WHITELIST,
-        ENTRY_POINT_APPROVE, ENTRY_POINT_BALANCE_OF, ENTRY_POINT_BURN, ENTRY_POINT_GET_APPROVED,
-        ENTRY_POINT_INIT, ENTRY_POINT_METADATA, ENTRY_POINT_MINT, ENTRY_POINT_OWNER_OF,
-        ENTRY_POINT_SET_APPROVE_FOR_ALL, ENTRY_POINT_SET_TOKEN_METADATA, ENTRY_POINT_SET_VARIABLES,
-        ENTRY_POINT_TRANSFER, HASH_KEY_NAME, HOLDER_MODE, IDENTIFIER_MODE, INSTALLER, JSON_SCHEMA,
-        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_MUTABILITY, METADATA_NFT721,
-        METADATA_RAW, METADATA_SCHEMA, MINTING_MODE, NFT_KIND, NFT_METADATA_KIND,
-        NUMBER_OF_MINTED_TOKENS, OPERATOR, OWNED_TOKENS, OWNERSHIP_MODE, RECEIPT_NAME,
-        TOKEN_COUNTS, TOKEN_ISSUERS, TOKEN_OWNERS, TOTAL_TOKEN_SUPPLY, WHITELIST_MODE,
-    },
+    constants::*,
     error::NFTCoreError,
     metadata::CustomMetadataSchema,
     modalities::{
@@ -228,6 +212,20 @@ pub extern "C" fn init() {
     .try_into()
     .unwrap_or_revert();
 
+    let csp_dev: Key = utils::get_named_arg_with_user_errors(
+        ARG_CSP_DEV,
+        NFTCoreError::MissingCspDev,
+        NFTCoreError::InvalidCspDev,
+    )
+    .unwrap_or_revert();
+
+    let csp_minter: Key = utils::get_named_arg_with_user_errors(
+        ARG_CSP_MINTER,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    )
+    .unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -299,6 +297,8 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(METADATA_RAW)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    runtime::put_key(CSP_MINTER, storage::new_uref(csp_minter).into());
+    runtime::put_key(CSP_DEV, storage::new_uref(csp_dev).into());
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -401,38 +401,16 @@ pub extern "C" fn mint() {
     .try_into()
     .unwrap_or_revert();
 
-    // Revert if minting is private and caller is not installer.
+    // Revert if minting is private and caller is not MINTER.
     if let MintingMode::Installer = minting_mode {
         let caller = utils::get_verified_caller().unwrap_or_revert();
-        match caller.tag() {
-            KeyTag::Hash => {
-                let calling_contract = caller
-                    .into_hash()
-                    .map(ContractHash::new)
-                    .unwrap_or_revert_with(NFTCoreError::InvalidKey);
-                let contract_whitelist =
-                    utils::get_stored_value_with_user_errors::<Vec<ContractHash>>(
-                        CONTRACT_WHITELIST,
-                        NFTCoreError::MissingWhitelistMode,
-                        NFTCoreError::InvalidWhitelistMode,
-                    );
-                // Revert if the calling contract is not in the whitelist.
-                if !contract_whitelist.contains(&calling_contract) {
-                    runtime::revert(NFTCoreError::UnlistedContractHash)
-                }
-            }
-            KeyTag::Account => {
-                let installer_account = runtime::get_key(INSTALLER)
-                    .unwrap_or_revert_with(NFTCoreError::MissingInstallerKey)
-                    .into_account()
-                    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToAccountHash);
-
-                // Revert if private minting is required and caller is not installer.
-                if runtime::get_caller() != installer_account {
-                    runtime::revert(NFTCoreError::InvalidMinter)
-                }
-            }
-            _ => runtime::revert(NFTCoreError::InvalidKey),
+        let minter = utils::get_stored_value_with_user_errors::<Key>(
+            CSP_MINTER,
+            NFTCoreError::MissingCspMinter,
+            NFTCoreError::InvalidCspMinter,
+        );
+        if caller != minter {
+            runtime::revert(NFTCoreError::InvalidMinter);
         }
     }
 
@@ -622,6 +600,35 @@ pub extern "C" fn mint() {
     runtime::ret(receipt)
 }
 
+// CHANGE MINTER.
+#[no_mangle]
+pub extern "C" fn csp_change_minter() {
+    let csp_dev = utils::get_stored_value_with_user_errors::<Key>(
+        CSP_DEV,
+        NFTCoreError::MissingCspDev,
+        NFTCoreError::InvalidCspDev,
+    );
+    let csp_new_minter: Key = utils::get_named_arg_with_user_errors(
+        ARG_CSP_NEW_MINTER,
+        NFTCoreError::MissingCspNewMinter,
+        NFTCoreError::InvalidCspNewMinter,
+    )
+    .unwrap_or_revert();
+
+    let caller = utils::get_verified_caller().unwrap_or_revert();
+    if caller != csp_dev {
+        runtime::revert(NFTCoreError::InvalidCspDev);
+    }
+
+    let minter_uref = utils::get_uref(
+        CSP_MINTER,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    );
+
+    storage::write(minter_uref, csp_new_minter);
+}
+
 // Marks token as burnt. This blocks any future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
@@ -686,6 +693,20 @@ pub extern "C" fn burn() {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
         };
+    match utils::get_token_identifiers_from_dictionary(&identifier_mode, &owned_tokens_item_key) {
+        Some(mut owned_tokens) => {
+            // Check that token_id is in owned tokens list. If so remove token_id from list
+            // If not revert.
+            if let Some(id) = owned_tokens.iter().position(|id| *id == token_identifier) {
+                owned_tokens.remove(id);
+            } else {
+                runtime::revert(NFTCoreError::InvalidTokenOwner)
+            }
+            utils::upsert_token_identifiers(&identifier_mode, &owned_tokens_item_key, owned_tokens)
+                .unwrap_or_revert();
+        }
+        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+    }
 
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 }
@@ -1302,6 +1323,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_RECEIPT_NAME, CLType::String),
                 Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
                 Parameter::new(ARG_BURN_MODE, CLType::U8),
+                Parameter::new(ARG_CSP_MINTER, CLType::Key),
+                Parameter::new(ARG_CSP_DEV, CLType::Key),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1459,6 +1482,15 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint CHANGE DTO MINTER
+        let csp_change_minter = EntryPoint::new(
+            ENTRY_POINT_CSP_CHANGE_MINTER,
+            vec![Parameter::new(ARG_CSP_NEW_MINTER, CLType::Key)],
+            CLType::U64,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         entry_points.add_entry_point(init_contract);
         entry_points.add_entry_point(set_variables);
         entry_points.add_entry_point(mint);
@@ -1471,6 +1503,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(metadata);
         entry_points.add_entry_point(set_approval_for_all);
         entry_points.add_entry_point(set_token_metadata);
+        entry_points.add_entry_point(csp_change_minter);
         entry_points
     };
 
@@ -1664,6 +1697,19 @@ pub extern "C" fn call() {
         package_hash.to_formatted_string()
     );
 
+    let csp_dev: Key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_CSP_DEV,
+        NFTCoreError::MissingCspDev,
+        NFTCoreError::InvalidCspDev,
+    )
+    .unwrap_or_revert();
+    let csp_minter: Key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_CSP_MINTER,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    )
+    .unwrap_or_revert();
+
     // Call contract to initialize it
     runtime::call_contract::<()>(
         contract_hash,
@@ -1684,6 +1730,8 @@ pub extern "C" fn call() {
              ARG_NFT_METADATA_KIND => nft_metadata_kind,
              ARG_IDENTIFIER_MODE => identifier_mode,
              ARG_METADATA_MUTABILITY => metadata_mutability,
+             ARG_CSP_DEV => csp_dev,
+             ARG_CSP_MINTER => csp_minter,
              ARG_BURN_MODE => burn_mode
         },
     );
