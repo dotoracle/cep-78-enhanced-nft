@@ -775,6 +775,7 @@ pub extern "C" fn burn() {
 
     let expected_token_owner: Key = utils::get_verified_caller().unwrap_or_revert();
 
+
     _burn(&token_identifier, &expected_token_owner);
 }
 
@@ -795,7 +796,7 @@ fn _burn(token_identifier: &TokenIdentifier, expected_token_owner: &Key) {
     // It makes sense to keep this token as owned by the caller. It just happens that the caller
     // owns a burnt token. That's all. Similarly, we should probably also not change the
     // owned_tokens dictionary.
-    if utils::is_token_burned(token_identifier) {
+    if utils::is_token_burned(&token_identifier) {
         runtime::revert(NFTCoreError::PreviouslyBurntToken)
     }
 
@@ -823,6 +824,30 @@ fn _burn(token_identifier: &TokenIdentifier, expected_token_owner: &Key) {
                 runtime::revert(NFTCoreError::FatalTokenIdDuplication);
             }
         };
+        let identifier_mode1: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+            IDENTIFIER_MODE,
+            NFTCoreError::MissingIdentifierMode,
+            NFTCoreError::InvalidIdentifierMode,
+        )
+        .try_into()
+        .unwrap_or_revert();
+    
+        match utils::get_token_identifiers_from_dictionary(&identifier_mode1, &owned_tokens_item_key) {
+            Some(mut owned_tokens) => {
+                // Check that token_id is in owned tokens list. If so remove token_id from list
+                // If not revert.
+                if let Some(id) = owned_tokens.iter().position(|id| * &id == token_identifier) {
+                    owned_tokens.remove(id);
+                } else {
+                    runtime::revert(NFTCoreError::InvalidTokenOwner)
+                }
+                utils::upsert_token_identifiers(&identifier_mode1, &owned_tokens_item_key, owned_tokens)
+                    .unwrap_or_revert();
+            }
+            None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+        }
+    
+        
 
     utils::upsert_dictionary_value_from_key(TOKEN_COUNTS, &owned_tokens_item_key, updated_balance);
 }
