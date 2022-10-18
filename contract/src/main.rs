@@ -602,7 +602,7 @@ pub extern "C" fn mint() {
 
 // CHANGE MINTER.
 #[no_mangle]
-pub extern "C" fn csp_change_minter() {
+pub extern "C" fn change_minter() {
     let csp_dev = utils::get_stored_value_with_user_errors::<Key>(
         CSP_DEV,
         NFTCoreError::MissingCspDev,
@@ -1483,7 +1483,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         );
 
         // This entrypoint CHANGE DTO MINTER
-        let csp_change_minter = EntryPoint::new(
+        let change_minter = EntryPoint::new(
             ENTRY_POINT_CSP_CHANGE_MINTER,
             vec![Parameter::new(ARG_CSP_NEW_MINTER, CLType::Key)],
             CLType::U64,
@@ -1503,7 +1503,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(metadata);
         entry_points.add_entry_point(set_approval_for_all);
         entry_points.add_entry_point(set_token_metadata);
-        entry_points.add_entry_point(csp_change_minter);
+        entry_points.add_entry_point(change_minter);
         entry_points
     };
 
