@@ -4,5 +4,6 @@ wasm
 scripts
 *.pem
 *.env
+node_modules
 
 
