@@ -15,7 +15,7 @@ use casper_types::{
 
 use crate::{
     modalities::NFTMetadataKind, utils, NFTCoreError, ARG_JSON_SCHEMA, METADATA_CEP78,
-    METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW,
+    METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, METADATA_CASPERPUNK,
 };
 
 // Metadata mutability is different from schema mutability.
@@ -128,6 +128,66 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchem
             );
             CustomMetadataSchema { properties }
         }
+        NFTMetadataKind::CasperPunk => {
+            let mut properties = BTreeMap::new();
+            properties.insert(
+                "name".to_string(),
+                MetadataSchemaProperty {
+                    name: "name".to_string(),
+                    description: "The name of the NFT".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "token_uri".to_string(),
+                MetadataSchemaProperty {
+                    name: "token_uri".to_string(),
+                    description: "The URI pointing to an off chain resource".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "checksum".to_string(),
+                MetadataSchemaProperty {
+                    name: "checksum".to_string(),
+                    description: "A SHA256 hash of the content at the token_uri".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "stamina".to_string(),
+                MetadataSchemaProperty {
+                    name: "stamina".to_string(),
+                    description: "CasperPunk stamina point".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "charisma".to_string(),
+                MetadataSchemaProperty {
+                    name: "charisma".to_string(),
+                    description: "CasperPunk charisma point".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "intelligence".to_string(),
+                MetadataSchemaProperty {
+                    name: "intelligence".to_string(),
+                    description: "CasperPunk intelligence point".to_string(),
+                    required: true,
+                },
+            );
+            properties.insert(
+                "rarity".to_string(),
+                MetadataSchemaProperty {
+                    name: "rarity".to_string(),
+                    description: "CasperPunk rarity point".to_string(),
+                    required: true,
+                },
+            );
+            CustomMetadataSchema { properties }
+        }
         NFTMetadataKind::CustomValidated => {
             let custom_schema_json = utils::get_stored_value_with_user_errors::<String>(
                 ARG_JSON_SCHEMA,
@@ -183,6 +243,16 @@ pub(crate) struct MetadataCEP78 {
     token_uri: String,
     checksum: String,
 }
+#[derive(Serialize, Deserialize)]
+pub(crate) struct MetadataCasperPunk {
+    pub name: String,
+    pub token_uri: String,
+    pub checksum: String,
+    pub stamina: u64,
+    pub charisma: u64,
+    pub intelligence: u64,
+    pub rarity: u64,
+}
 
 // Using a structure for the purposes of serialization formatting.
 #[derive(Serialize, Deserialize)]
@@ -196,6 +266,48 @@ pub(crate) fn validate_metadata(
 ) -> Result<String, NFTCoreError> {
     let token_schema = get_metadata_schema(metadata_kind);
     match metadata_kind {
+        NFTMetadataKind::CasperPunk => {
+            let metadata = casper_serde_json_wasm::from_str::<MetadataCasperPunk>(&token_metadata)
+                .map_err(|_| NFTCoreError::FailedToParseCasperPunkMetadata)?;
+
+            if let Some(name_property) = token_schema.properties.get("name") {
+                if name_property.required && metadata.name.is_empty() {
+                    runtime::revert(NFTCoreError::InvalidCasperPunkMetadata)
+                }
+            }
+            if let Some(token_uri_property) = token_schema.properties.get("token_uri") {
+                if token_uri_property.required && metadata.token_uri.is_empty() {
+                    runtime::revert(NFTCoreError::InvalidCasperPunkMetadata)
+                }
+            }
+            if let Some(checksum_property) = token_schema.properties.get("checksum") {
+                if checksum_property.required && metadata.checksum.is_empty() {
+                    runtime::revert(NFTCoreError::InvalidCasperPunkMetadata)
+                }
+            }
+            // if let Some(stamina_property) = token_schema.properties.get("stamina") {
+            //     if stamina_property.required && metadata.stamina.is_empty() {
+            //         runtime::revert(NFTCoreError::InvalidCasperPunkU8TypeMetadata)
+            //     }
+            // }
+            // if let Some(charisma_property) = token_schema.properties.get("charisma") {
+            //     if charisma_property.required && metadata.charisma.is_empty() {
+            //         runtime::revert(NFTCoreError::InvalidCasperPunkU8TypeMetadata)
+            //     }
+            // }
+            // if let Some(intelligence_property) = token_schema.properties.get("intelligence") {
+            //     if intelligence_property.required &&  {
+            //         runtime::revert(NFTCoreError::InvalidCasperPunkU8TypeMetadata)
+            //     }
+            // }
+            // if let Some(rarity_property) = token_schema.properties.get("rarity") {
+            //     if rarity_property.required && metadata.rarity.is_empty() {
+            //         runtime::revert(NFTCoreError::InvalidCasperPunkU8TypeMetadata)
+            //     }
+            // }
+            casper_serde_json_wasm::to_string_pretty(&metadata)
+                .map_err(|_| NFTCoreError::FailedToJsonifyCEP99Metadata)
+        }
         NFTMetadataKind::CEP78 => {
             let metadata = casper_serde_json_wasm::from_str::<MetadataCEP78>(&token_metadata)
                 .map_err(|_| NFTCoreError::FailedToParseCep99Metadata)?;
@@ -262,9 +374,12 @@ pub(crate) fn validate_metadata(
 pub(crate) fn get_metadata_dictionary_name(metadata_kind: &NFTMetadataKind) -> String {
     let name = match metadata_kind {
         NFTMetadataKind::CEP78 => METADATA_CEP78,
+        NFTMetadataKind::CasperPunk => METADATA_CASPERPUNK,
         NFTMetadataKind::NFT721 => METADATA_NFT721,
         NFTMetadataKind::Raw => METADATA_RAW,
         NFTMetadataKind::CustomValidated => METADATA_CUSTOM_VALIDATED,
+
     };
     name.to_string()
 }
+

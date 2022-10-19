@@ -115,6 +115,18 @@ pub enum NFTCoreError {
     InvalidCspMinter = 504,
     MissingCspNewMinter = 505,
     InvalidCspNewMinter = 506,
+    FailedToParseCasperPunkMetadata = 507,
+    InvalidCasperPunkMetadata = 508,
+    InvalidCasperPunkU8TypeMetadata = 509,
+    MissingNewTokenName = 510,
+    InvalidNewTokenName = 511,
+    SameName = 512,
+    FailedToJsonifyUpdateMetadata = 513,
+    FailedToValidateUpdate = 514,
+    MissingNftOwner = 515,
+    InvalidNftOwner = 516,
+
+
 }
 
 impl From<NFTCoreError> for ApiError {

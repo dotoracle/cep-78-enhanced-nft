@@ -97,6 +97,7 @@ pub enum NFTMetadataKind {
     NFT721 = 1,
     Raw = 2,
     CustomValidated = 3,
+    CasperPunk = 4,
 }
 
 impl TryFrom<u8> for NFTMetadataKind {
@@ -108,6 +109,7 @@ impl TryFrom<u8> for NFTMetadataKind {
             1 => Ok(NFTMetadataKind::NFT721),
             2 => Ok(NFTMetadataKind::Raw),
             3 => Ok(NFTMetadataKind::CustomValidated),
+            4 => Ok(NFTMetadataKind::CasperPunk),
             _ => Err(NFTCoreError::InvalidNFTMetadataKind),
         }
     }
