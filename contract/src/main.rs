@@ -750,6 +750,152 @@ pub extern "C" fn change_fee_change_name() {
     storage::write(fee_change_name_uref, new_fee_change_name);
 }
 
+// Only update name of NFT
+// Only minter can call this function
+#[no_mangle]
+pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
+    // Check if caller is not CSP_MINTER
+
+    let csp_minter = utils::get_stored_value_with_user_errors::<Key>(
+        CSP_MINTER,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    );
+    let caller = utils::get_verified_caller().unwrap_or_revert();
+    if caller != csp_minter {
+        runtime::revert(NFTCoreError::InvalidCspMinter);
+    }
+
+    // Check if metadata is immutable
+    let metadata_mutability: MetadataMutability = utils::get_stored_value_with_user_errors::<u8>(
+        METADATA_MUTABILITY,
+        NFTCoreError::MissingMetadataMutability,
+        NFTCoreError::InvalidMetadataMutability,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    if let MetadataMutability::Immutable = metadata_mutability {
+        runtime::revert(NFTCoreError::ForbiddenMetadataUpdate)
+    }
+
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    // token Id input
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+
+    // new NFT name input
+    let updated_token_name: String = utils::get_named_arg_with_user_errors::<String>(
+        ARG_NEW_NFT_NAME,
+        NFTCoreError::MissingNewTokenName,
+        NFTCoreError::InvalidNewTokenName,
+    )
+    .unwrap_or_revert();
+
+    // NFT Owner input
+    let nft_owner: Key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_NFT_OWNER,
+        NFTCoreError::MissingNftOwner,
+        NFTCoreError::InvalidNftOwner,
+    )
+    .unwrap_or_revert();
+
+    // token Id input
+    // let token_id_to_update: u64 = utils::get_named_arg_with_user_errors::<u64>(
+    //     ARG_TOKEN_ID,
+    //     NFTCoreError::MissingTokenID,
+    //     NFTCoreError::InvalidTokenIdentifier,
+    // )
+    // .unwrap_or_revert();
+    let token_owner = utils::get_dictionary_value_from_key::<Key>(
+        TOKEN_OWNERS,
+        &token_identifier.get_dictionary_item_key(),
+    );
+    // Check if token_id is not belong to token_owner
+    if let Some(token_owner_key) = token_owner {
+        // let caller = utils::get_verified_caller().unwrap_or_revert();
+        if nft_owner != token_owner_key {
+            runtime::revert(NFTCoreError::InvalidTokenOwner)
+        }
+    } else {
+        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+    }
+
+
+    // Calculate EXP fee
+
+    let exp_contract = utils::get_stored_value_with_user_errors::<Key>(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingFeeContract,
+        NFTCoreError::InvalidFeeContract,
+    );
+    
+    let fee_change_name = utils::get_stored_value_with_user_errors::<u64>(
+        FEE_CHANGE_NAME,
+        NFTCoreError::MissingFeeChangeName,
+        NFTCoreError::InvalidFeeChangeName,
+    );
+
+    
+    
+
+
+    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
+        NFT_METADATA_KIND,
+        NFTCoreError::MissingNFTMetadataKind,
+        NFTCoreError::InvalidNFTMetadataKind,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    // Get old metadata
+    let old_token_metadata = utils::get_dictionary_value_from_key::<String>(
+        &metadata::get_metadata_dictionary_name(&metadata_kind),
+        &token_identifier.get_dictionary_item_key(),
+    );
+
+    let metadata =
+        casper_serde_json_wasm::from_str::<MetadataCasperPunk>(&old_token_metadata.unwrap())
+            .map_err(|_| NFTCoreError::FailedToParseCasperPunkMetadata)?;
+
+    // Compare new and old name
+
+    if (updated_token_name == metadata.name) {
+        runtime::revert(NFTCoreError::SameName)
+    }
+    let maybe_update_metadata = MetadataCasperPunk {
+        name: updated_token_name,
+        token_uri: metadata.token_uri,
+        checksum: metadata.checksum,
+        stamina: metadata.stamina,
+        charisma: metadata.charisma,
+        intelligence: metadata.intelligence,
+        rarity: metadata.rarity,
+    };
+
+    let update_metadata = casper_serde_json_wasm::to_string(&maybe_update_metadata)
+        .map_err(|_| NFTCoreError::FailedToJsonifyUpdateMetadata);
+
+    let updated_metadata = metadata::validate_metadata(
+        &metadata_kind,
+        update_metadata.unwrap_or_revert_with(NFTCoreError::FailedToValidateUpdate),
+    )
+    .unwrap_or_revert();
+
+    utils::upsert_dictionary_value_from_key(
+        &metadata::get_metadata_dictionary_name(&metadata_kind),
+        &token_identifier.get_dictionary_item_key(),
+        updated_metadata,
+    );
+    Ok(())
+}
+
 // Marks token as burnt. This blocks any future call to transfer token.
 #[no_mangle]
 pub extern "C" fn burn() {
@@ -1416,132 +1562,6 @@ pub extern "C" fn set_token_metadata() {
     );
 }
 
-// Only update name of NFT
-// Only minter can call this function
-#[no_mangle]
-pub extern "C" fn set_token_name() -> Result<(), NFTCoreError> {
-    // Check if caller is not CSP_MINTER
-
-    let csp_minter = utils::get_stored_value_with_user_errors::<Key>(
-        CSP_MINTER,
-        NFTCoreError::MissingCspMinter,
-        NFTCoreError::InvalidCspMinter,
-    );
-    let caller = utils::get_verified_caller().unwrap_or_revert();
-    if caller != csp_minter {
-        runtime::revert(NFTCoreError::InvalidCspMinter);
-    }
-
-    // Check if metadata is immutable
-    let metadata_mutability: MetadataMutability = utils::get_stored_value_with_user_errors::<u8>(
-        METADATA_MUTABILITY,
-        NFTCoreError::MissingMetadataMutability,
-        NFTCoreError::InvalidMetadataMutability,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
-    if let MetadataMutability::Immutable = metadata_mutability {
-        runtime::revert(NFTCoreError::ForbiddenMetadataUpdate)
-    }
-
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
-    // token Id input
-    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
-
-    // new NFT name input
-    let updated_token_name: String = utils::get_named_arg_with_user_errors::<String>(
-        ARG_NEW_NFT_NAME,
-        NFTCoreError::MissingNewTokenName,
-        NFTCoreError::InvalidNewTokenName,
-    )
-    .unwrap_or_revert();
-
-    // NFT Owner input
-    let nft_owner: Key = utils::get_named_arg_with_user_errors::<Key>(
-        ARG_NFT_OWNER,
-        NFTCoreError::MissingNftOwner,
-        NFTCoreError::InvalidNftOwner,
-    )
-    .unwrap_or_revert();
-
-    // token Id input
-    // let token_id_to_update: u64 = utils::get_named_arg_with_user_errors::<u64>(
-    //     ARG_TOKEN_ID,
-    //     NFTCoreError::MissingTokenID,
-    //     NFTCoreError::InvalidTokenIdentifier,
-    // )
-    // .unwrap_or_revert();
-    let token_owner = utils::get_dictionary_value_from_key::<Key>(
-        TOKEN_OWNERS,
-        &token_identifier.get_dictionary_item_key(),
-    );
-    // Check if token_id is not belong to token_owner
-    if let Some(token_owner_key) = token_owner {
-        // let caller = utils::get_verified_caller().unwrap_or_revert();
-        if nft_owner != token_owner_key {
-            runtime::revert(NFTCoreError::InvalidTokenOwner)
-        }
-    } else {
-        runtime::revert(NFTCoreError::InvalidTokenIdentifier)
-    }
-
-    let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
-        NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .try_into()
-    .unwrap_or_revert();
-
-    // Get old metadata
-    let old_token_metadata = utils::get_dictionary_value_from_key::<String>(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-    );
-
-    let metadata =
-        casper_serde_json_wasm::from_str::<MetadataCasperPunk>(&old_token_metadata.unwrap())
-            .map_err(|_| NFTCoreError::FailedToParseCasperPunkMetadata)?;
-
-    // Compare new and old name
-
-    if (updated_token_name == metadata.name) {
-        runtime::revert(NFTCoreError::SameName)
-    }
-    let maybe_update_metadata = MetadataCasperPunk {
-        name: updated_token_name,
-        token_uri: metadata.token_uri,
-        checksum: metadata.checksum,
-        stamina: metadata.stamina,
-        charisma: metadata.charisma,
-        intelligence: metadata.intelligence,
-        rarity: metadata.rarity,
-    };
-
-    let update_metadata = casper_serde_json_wasm::to_string(&maybe_update_metadata)
-        .map_err(|_| NFTCoreError::FailedToJsonifyUpdateMetadata);
-
-    let updated_metadata = metadata::validate_metadata(
-        &metadata_kind,
-        update_metadata.unwrap_or_revert_with(NFTCoreError::FailedToValidateUpdate),
-    )
-    .unwrap_or_revert();
-
-    utils::upsert_dictionary_value_from_key(
-        &metadata::get_metadata_dictionary_name(&metadata_kind),
-        &token_identifier.get_dictionary_item_key(),
-        updated_metadata,
-    );
-    Ok(())
-}
 
 fn install_nft_contract() -> (ContractHash, ContractVersion) {
     let entry_points = {
@@ -1764,8 +1784,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         );
 
         // This entrypoint CHANGE TOKEN NAME
-        let set_token_name = EntryPoint::new(
-            ENTRY_POINT_SET_TOKEN_NAME,
+        let change_token_name = EntryPoint::new(
+            ENTRY_POINT_CHANGE_TOKEN_NAME,
             vec![
                 Parameter::new(ARG_NFT_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_ID, CLType::U64),
@@ -1789,7 +1809,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(set_approval_for_all);
         entry_points.add_entry_point(set_token_metadata);
         entry_points.add_entry_point(change_minter);
-        entry_points.add_entry_point(set_token_name);
+        entry_points.add_entry_point(change_token_name);
         entry_points.add_entry_point(change_fee_change_name);
         entry_points.add_entry_point(change_exp_contract);
         entry_points
