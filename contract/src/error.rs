@@ -125,6 +125,22 @@ pub enum NFTCoreError {
     FailedToValidateUpdate = 514,
     MissingNftOwner = 515,
     InvalidNftOwner = 516,
+    MissingFeeContract = 517,
+    InvalidFeeContract = 518,
+    MissingFeeChangeName = 519,
+    InvalidFeeChangeName = 520,
+    MissingFeeChangeStamina = 521,
+    InvalidFeeChangeStamina = 522,
+    MissingFeeChangeCharisma = 523,
+    InvalidFeeChangeCharisma = 524,
+    MissingFeeChangeIntelligence = 525,
+    InvalidFeeChangeIntelligence = 526,
+    MissingNewFeeChangeName = 527,
+    InvalidNewFeeChangeName = 528,
+    SameFeeChangeName = 529,
+    MissingNewExpContract = 530,
+    InvalidNewExpContract = 531,
+    SameExpContract = 532,
 
 
 }

@@ -226,6 +226,41 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let exp_contract: Key = utils::get_named_arg_with_user_errors(
+        ARG_EXP_CONTRACT,
+        NFTCoreError::MissingFeeContract,
+        NFTCoreError::InvalidFeeContract,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_NAME,
+        NFTCoreError::MissingFeeChangeName,
+        NFTCoreError::InvalidFeeChangeName,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_stamina: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_STAMINA,
+        NFTCoreError::MissingFeeChangeStamina,
+        NFTCoreError::InvalidFeeChangeStamina,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_charisma: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_CHARISMA,
+        NFTCoreError::MissingFeeChangeCharisma,
+        NFTCoreError::InvalidFeeChangeCharisma,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_intelligence: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_INTELLIGENCE,
+        NFTCoreError::MissingFeeChangeIntelligence,
+        NFTCoreError::InvalidFeeChangeIntelligence,
+    )
+    .unwrap_or_revert();
+
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
@@ -301,6 +336,11 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     runtime::put_key(CSP_MINTER, storage::new_uref(csp_minter).into());
     runtime::put_key(CSP_DEV, storage::new_uref(csp_dev).into());
+    runtime::put_key(EXP_CONTRACT, storage::new_uref(exp_contract).into());
+    runtime::put_key(FEE_CHANGE_NAME, storage::new_uref(fee_change_name).into());
+    runtime::put_key(FEE_CHANGE_STAMINA, storage::new_uref(fee_change_stamina).into());
+    runtime::put_key(FEE_CHANGE_CHARISMA, storage::new_uref(fee_change_charisma).into());
+    runtime::put_key(FEE_CHANGE_INTELLIGENCE, storage::new_uref(fee_change_intelligence).into());
 }
 
 // set_variables allows the user to set any variable or any combination of variables simultaneously.
@@ -629,6 +669,85 @@ pub extern "C" fn change_minter() {
     );
 
     storage::write(minter_uref, csp_new_minter);
+}
+
+// CHANGE EXP CONTRACT.
+#[no_mangle]
+pub extern "C" fn change_exp_contract() {
+
+    let csp_dev = utils::get_stored_value_with_user_errors::<Key>(
+        CSP_DEV,
+        NFTCoreError::MissingCspDev,
+        NFTCoreError::InvalidCspDev,
+    );
+    let caller = utils::get_verified_caller().unwrap_or_revert();
+    if caller != csp_dev {
+        runtime::revert(NFTCoreError::InvalidCspDev);
+    }
+
+    let old_exp_contract = utils::get_stored_value_with_user_errors::<Key>(
+        EXP_CONTRACT,
+        NFTCoreError::MissingFeeContract,
+        NFTCoreError::InvalidFeeContract,
+    );
+    let new_exp_contract: Key = utils::get_named_arg_with_user_errors(
+        ARG_NEW_EXP_CONTRACT,
+        NFTCoreError::MissingNewExpContract,
+        NFTCoreError::InvalidNewExpContract,
+    )
+    .unwrap_or_revert();
+
+    if old_exp_contract == new_exp_contract {
+        runtime::revert(NFTCoreError::SameExpContract);
+    }
+
+    let exp_contract_uref = utils::get_uref(
+        EXP_CONTRACT,
+        NFTCoreError::MissingFeeContract,
+        NFTCoreError::InvalidFeeContract,
+    );
+
+    storage::write(exp_contract_uref, new_exp_contract);
+}
+
+
+// CHANGE FEE CHANGE NAME.
+#[no_mangle]
+pub extern "C" fn change_fee_change_name() {
+
+    let csp_dev = utils::get_stored_value_with_user_errors::<Key>(
+        CSP_DEV,
+        NFTCoreError::MissingCspDev,
+        NFTCoreError::InvalidCspDev,
+    );
+    let caller = utils::get_verified_caller().unwrap_or_revert();
+    if caller != csp_dev {
+        runtime::revert(NFTCoreError::InvalidCspDev);
+    }
+
+    let old_fee_change_name = utils::get_stored_value_with_user_errors::<u64>(
+        FEE_CHANGE_NAME,
+        NFTCoreError::MissingFeeChangeName,
+        NFTCoreError::InvalidFeeChangeName,
+    );
+    let new_fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+        ARG_NEW_FEE_CHANGE_NAME,
+        NFTCoreError::MissingNewFeeChangeName,
+        NFTCoreError::InvalidNewFeeChangeName,
+    )
+    .unwrap_or_revert();
+
+    if old_fee_change_name == new_fee_change_name {
+        runtime::revert(NFTCoreError::SameFeeChangeName);
+    }
+
+    let fee_change_name_uref = utils::get_uref(
+        FEE_CHANGE_NAME,
+        NFTCoreError::MissingFeeChangeName,
+        NFTCoreError::InvalidFeeChangeName,
+    );
+
+    storage::write(fee_change_name_uref, new_fee_change_name);
 }
 
 // Marks token as burnt. This blocks any future call to transfer token.
@@ -1334,6 +1453,7 @@ pub extern "C" fn set_token_name() -> Result<(), NFTCoreError> {
     .try_into()
     .unwrap_or_revert();
 
+    // token Id input
     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
 
     // new NFT name input
@@ -1353,12 +1473,12 @@ pub extern "C" fn set_token_name() -> Result<(), NFTCoreError> {
     .unwrap_or_revert();
 
     // token Id input
-    let token_id_to_update: u64 = utils::get_named_arg_with_user_errors::<u64>(
-        ARG_TOKEN_ID,
-        NFTCoreError::MissingTokenID,
-        NFTCoreError::InvalidTokenIdentifier,
-    )
-    .unwrap_or_revert();
+    // let token_id_to_update: u64 = utils::get_named_arg_with_user_errors::<u64>(
+    //     ARG_TOKEN_ID,
+    //     NFTCoreError::MissingTokenID,
+    //     NFTCoreError::InvalidTokenIdentifier,
+    // )
+    // .unwrap_or_revert();
     let token_owner = utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
@@ -1454,6 +1574,11 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_BURN_MODE, CLType::U8),
                 Parameter::new(ARG_CSP_MINTER, CLType::Key),
                 Parameter::new(ARG_CSP_DEV, CLType::Key),
+                Parameter::new(ARG_EXP_CONTRACT, CLType::Key),
+                Parameter::new(ARG_FEE_CHANGE_NAME, CLType::U64),
+                Parameter::new(ARG_FEE_CHANGE_STAMINA, CLType::U64),
+                Parameter::new(ARG_FEE_CHANGE_CHARISMA, CLType::U64),
+                Parameter::new(ARG_FEE_CHANGE_INTELLIGENCE, CLType::U64),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1611,7 +1736,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
-        // This entrypoint CHANGE DTO MINTER
+        // This entrypoint CHANGE CSP MINTER
         let change_minter = EntryPoint::new(
             ENTRY_POINT_CSP_CHANGE_MINTER,
             vec![Parameter::new(ARG_CSP_NEW_MINTER, CLType::Key)],
@@ -1620,15 +1745,32 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // This entrypoint CHANGE EXP CONTRACT
+        let change_exp_contract = EntryPoint::new(
+            ENTRY_POINT_CHANGE_EXP_CONTRACT,
+            vec![Parameter::new(ARG_NEW_EXP_CONTRACT, CLType::Key)],
+            CLType::U64,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
 
-        // This entrypoint CHANGE DTO MINTER
+        // This entrypoint CHANGE FEE CHANGE NAME
+        let change_fee_change_name = EntryPoint::new(
+            ENTRY_POINT_CHANGE_FEE_CHANGE_MINTER,
+            vec![Parameter::new(ARG_NEW_FEE_CHANGE_NAME, CLType::U64)],
+            CLType::String,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
+        // This entrypoint CHANGE TOKEN NAME
         let set_token_name = EntryPoint::new(
             ENTRY_POINT_SET_TOKEN_NAME,
             vec![
                 Parameter::new(ARG_NFT_OWNER, CLType::Key),
                 Parameter::new(ARG_TOKEN_ID, CLType::U64),
                 Parameter::new(ARG_NEW_NFT_NAME, CLType::String),
-                ],
+            ],
             CLType::Unit,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1648,6 +1790,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(set_token_metadata);
         entry_points.add_entry_point(change_minter);
         entry_points.add_entry_point(set_token_name);
+        entry_points.add_entry_point(change_fee_change_name);
+        entry_points.add_entry_point(change_exp_contract);
         entry_points
     };
 
@@ -1854,6 +1998,41 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
+    let exp_contract: Key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_EXP_CONTRACT,
+        NFTCoreError::MissingFeeContract,
+        NFTCoreError::InvalidFeeContract,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_NAME,
+        NFTCoreError::MissingFeeChangeName,
+        NFTCoreError::InvalidFeeChangeName,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_stamina: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_STAMINA,
+        NFTCoreError::MissingFeeChangeStamina,
+        NFTCoreError::InvalidFeeChangeStamina,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_charisma: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_CHARISMA,
+        NFTCoreError::MissingFeeChangeCharisma,
+        NFTCoreError::InvalidFeeChangeCharisma,
+    )
+    .unwrap_or_revert();
+
+    let fee_change_intelligence: u64 = utils::get_named_arg_with_user_errors(
+        ARG_FEE_CHANGE_INTELLIGENCE,
+        NFTCoreError::MissingFeeChangeIntelligence,
+        NFTCoreError::InvalidFeeChangeIntelligence,
+    )
+    .unwrap_or_revert();
+
     // Call contract to initialize it
     runtime::call_contract::<()>(
         contract_hash,
@@ -1876,7 +2055,12 @@ pub extern "C" fn call() {
              ARG_METADATA_MUTABILITY => metadata_mutability,
              ARG_CSP_DEV => csp_dev,
              ARG_CSP_MINTER => csp_minter,
-             ARG_BURN_MODE => burn_mode
+             ARG_BURN_MODE => burn_mode,
+             ARG_EXP_CONTRACT => exp_contract,
+             ARG_FEE_CHANGE_NAME => fee_change_name,
+             ARG_FEE_CHANGE_STAMINA => fee_change_stamina,
+             ARG_FEE_CHANGE_CHARISMA => fee_change_charisma,
+             ARG_FEE_CHANGE_INTELLIGENCE => fee_change_intelligence,
         },
     );
 }
