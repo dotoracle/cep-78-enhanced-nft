@@ -2281,10 +2281,8 @@ pub extern "C" fn call() {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     // runtime::put_key(CONTRACT_NAME, contract_hash.into());
     // runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
-
-
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
+    runtime::put_key(CONTRACT_VERSION_1, storage::new_uref(contract_version).into());
 
 
 
