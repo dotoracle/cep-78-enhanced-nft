@@ -2284,7 +2284,7 @@ pub extern "C" fn call() {
 
 
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION_2, storage::new_uref(contract_version).into());
+    runtime::put_key(CONTRACT_VERSION_3, storage::new_uref(contract_version).into());
 
 
 
@@ -2366,6 +2366,27 @@ pub extern "C" fn call() {
              ARG_FEE_CHANGE_INTELLIGENCE => fee_change_intelligence,
         },
     );
+
+    storage::disable_contract_version(
+        package_hash,
+        runtime::get_key(CONTRACT_VERSION)
+            .unwrap_or_revert()
+            .into_hash()
+            .unwrap_or_revert()
+            .into(),
+    )
+    .unwrap_or_revert();
+    storage::disable_contract_version(
+        package_hash,
+        runtime::get_key(CONTRACT_VERSION_2)
+            .unwrap_or_revert()
+            .into_hash()
+            .unwrap_or_revert()
+            .into(),
+    )
+    .unwrap_or_revert();
+
+
 }
 
 fn call_exp_contract_to_transfer(contract_hash: &Key, owner: Key, recepient: Key, amount: U256) {
