@@ -141,6 +141,7 @@ pub enum NFTCoreError {
     MissingNewExpContract = 530,
     InvalidNewExpContract = 531,
     SameExpContract = 532,
+    InvalidContext = 533,
 
 
 }

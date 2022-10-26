@@ -1,3 +1,4 @@
+use crate::address::Address;
 use alloc::{
     borrow::ToOwned,
     string::{String, ToString},
@@ -16,7 +17,7 @@ use casper_types::{
     api_error,
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
-    ApiError, CLTyped, ContractHash, Key, URef,
+    ApiError, CLTyped, ContractHash, Key, URef, 
 };
 
 use crate::{
@@ -386,4 +387,44 @@ pub(crate) fn get_burn_mode() -> BurnMode {
 pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
     get_dictionary_value_from_key::<()>(BURNT_TOKENS, &token_identifier.get_dictionary_item_key())
         .is_some()
+}
+
+pub(crate) fn get_self_key() -> Key {
+    let self_addr = get_self_address().unwrap_or_revert();
+    return get_key_from_address(&self_addr);
+}
+pub(crate) fn get_self_address() -> Result<Address, NFTCoreError> {
+    get_last_call_stack_item()
+        .map(call_stack_element_to_address)
+        .ok_or(NFTCoreError::InvalidContext)
+}
+fn get_last_call_stack_item() -> Option<CallStackElement> {
+    let call_stack = runtime::get_call_stack();
+    call_stack.into_iter().rev().nth(0)
+}
+
+/// Returns address based on a [`CallStackElement`].
+///
+/// For `Session` and `StoredSession` variants it will return account hash, and for `StoredContract`
+/// case it will use contract hash as the address.
+fn call_stack_element_to_address(call_stack_element: CallStackElement) -> Address {
+    match call_stack_element {
+        CallStackElement::Session { account_hash } => Address::from(account_hash),
+        CallStackElement::StoredSession { account_hash, .. } => {
+            // Stored session code acts in account's context, so if stored session wants to interact
+            // with an ERC20 token caller's address will be used.
+            Address::from(account_hash)
+        }
+        CallStackElement::StoredContract {
+            contract_package_hash,
+            ..
+        } => Address::from(contract_package_hash),
+    }
+}
+pub(crate) fn get_key_from_address(addr: &Address) -> Key {
+    let self_key = match *addr {
+        Address::Account(acc) => Key::from(acc),
+        Address::Contract(contract_package_hash) => Key::from(contract_package_hash),
+    };
+    self_key
 }

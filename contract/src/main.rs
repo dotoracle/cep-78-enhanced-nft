@@ -9,6 +9,7 @@ mod error;
 mod metadata;
 mod modalities;
 mod utils;
+mod address;
 
 extern crate alloc;
 
@@ -24,7 +25,7 @@ use core::convert::TryInto;
 use casper_types::{
     contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash, ContractPackageHash,
     ContractVersion, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag,
-    Parameter, RuntimeArgs, Tagged,
+    Parameter, RuntimeArgs, Tagged, HashAddr, U256,
 };
 
 use casper_contract::{
@@ -38,7 +39,7 @@ use casper_contract::{
 use crate::{
     constants::*,
     error::NFTCoreError,
-    metadata::{CustomMetadataSchema, MetadataCasperPunk},
+    metadata::{CustomMetadataSchema, MetadataCasperPunk,},
     modalities::{
         BurnMode, MetadataMutability, MintingMode, NFTHolderMode, NFTIdentifierMode, NFTKind,
         NFTMetadataKind, OwnershipMode, TokenIdentifier, WhitelistMode,
@@ -233,28 +234,28 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
-    let fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_name: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_NAME,
         NFTCoreError::MissingFeeChangeName,
         NFTCoreError::InvalidFeeChangeName,
     )
     .unwrap_or_revert();
 
-    let fee_change_stamina: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_stamina: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_STAMINA,
         NFTCoreError::MissingFeeChangeStamina,
         NFTCoreError::InvalidFeeChangeStamina,
     )
     .unwrap_or_revert();
 
-    let fee_change_charisma: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_charisma: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_CHARISMA,
         NFTCoreError::MissingFeeChangeCharisma,
         NFTCoreError::InvalidFeeChangeCharisma,
     )
     .unwrap_or_revert();
 
-    let fee_change_intelligence: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_intelligence: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_INTELLIGENCE,
         NFTCoreError::MissingFeeChangeIntelligence,
         NFTCoreError::InvalidFeeChangeIntelligence,
@@ -725,12 +726,12 @@ pub extern "C" fn change_fee_change_name() {
         runtime::revert(NFTCoreError::InvalidCspDev);
     }
 
-    let old_fee_change_name = utils::get_stored_value_with_user_errors::<u64>(
+    let old_fee_change_name = utils::get_stored_value_with_user_errors::<U256>(
         FEE_CHANGE_NAME,
         NFTCoreError::MissingFeeChangeName,
         NFTCoreError::InvalidFeeChangeName,
     );
-    let new_fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+    let new_fee_change_name: U256 = utils::get_named_arg_with_user_errors(
         ARG_NEW_FEE_CHANGE_NAME,
         NFTCoreError::MissingNewFeeChangeName,
         NFTCoreError::InvalidNewFeeChangeName,
@@ -756,15 +757,15 @@ pub extern "C" fn change_fee_change_name() {
 pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
     // Check if caller is not CSP_MINTER
 
-    let csp_minter = utils::get_stored_value_with_user_errors::<Key>(
-        CSP_MINTER,
-        NFTCoreError::MissingCspMinter,
-        NFTCoreError::InvalidCspMinter,
-    );
-    let caller = utils::get_verified_caller().unwrap_or_revert();
-    if caller != csp_minter {
-        runtime::revert(NFTCoreError::InvalidCspMinter);
-    }
+    // let csp_minter = utils::get_stored_value_with_user_errors::<Key>(
+    //     CSP_MINTER,
+    //     NFTCoreError::MissingCspMinter,
+    //     NFTCoreError::InvalidCspMinter,
+    // );
+    // let caller = utils::get_verified_caller().unwrap_or_revert();
+    // if caller != csp_minter {
+    //     runtime::revert(NFTCoreError::InvalidCspMinter);
+    // }
 
     // Check if metadata is immutable
     let metadata_mutability: MetadataMutability = utils::get_stored_value_with_user_errors::<u8>(
@@ -836,15 +837,17 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
         NFTCoreError::InvalidFeeContract,
     );
     
-    let fee_change_name = utils::get_stored_value_with_user_errors::<u64>(
+    let fee_change_name = utils::get_stored_value_with_user_errors::<U256>(
         FEE_CHANGE_NAME,
         NFTCoreError::MissingFeeChangeName,
         NFTCoreError::InvalidFeeChangeName,
     );
 
-    
-    
+    let self_key = utils::get_self_key();
 
+    call_exp_contract_to_transfer(&exp_contract, nft_owner, self_key, fee_change_name);
+    call_exp_contract_to_burn(&exp_contract, fee_change_name);
+    
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
         NFT_METADATA_KIND,
@@ -1595,10 +1598,10 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_CSP_MINTER, CLType::Key),
                 Parameter::new(ARG_CSP_DEV, CLType::Key),
                 Parameter::new(ARG_EXP_CONTRACT, CLType::Key),
-                Parameter::new(ARG_FEE_CHANGE_NAME, CLType::U64),
-                Parameter::new(ARG_FEE_CHANGE_STAMINA, CLType::U64),
-                Parameter::new(ARG_FEE_CHANGE_CHARISMA, CLType::U64),
-                Parameter::new(ARG_FEE_CHANGE_INTELLIGENCE, CLType::U64),
+                Parameter::new(ARG_FEE_CHANGE_NAME, CLType::U256),
+                Parameter::new(ARG_FEE_CHANGE_STAMINA, CLType::U256),
+                Parameter::new(ARG_FEE_CHANGE_CHARISMA, CLType::U256),
+                Parameter::new(ARG_FEE_CHANGE_INTELLIGENCE, CLType::U256),
             ],
             CLType::Unit,
             EntryPointAccess::Public,
@@ -1777,7 +1780,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         // This entrypoint CHANGE FEE CHANGE NAME
         let change_fee_change_name = EntryPoint::new(
             ENTRY_POINT_CHANGE_FEE_CHANGE_MINTER,
-            vec![Parameter::new(ARG_NEW_FEE_CHANGE_NAME, CLType::U64)],
+            vec![Parameter::new(ARG_NEW_FEE_CHANGE_NAME, CLType::U256)],
             CLType::String,
             EntryPointAccess::Public,
             EntryPointType::Contract,
@@ -1825,9 +1828,10 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
     storage::new_contract(
         entry_points,
         Some(named_keys),
-        Some(HASH_KEY_NAME.to_string()),
-        Some(ACCESS_KEY_NAME.to_string()),
+        Some(HASH_KEY_CASPERPUNK_NAME.to_string()),
+        Some(ACCESS_KEY_CASPERPUNK_NAME.to_string()),
     )
+
 }
 
 #[no_mangle]
@@ -1989,7 +1993,7 @@ pub extern "C" fn call() {
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 
-    let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_NAME)
+    let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_CASPERPUNK_NAME)
         .unwrap_or_revert()
         .into_hash()
         .map(ContractPackageHash::new)
@@ -2025,28 +2029,28 @@ pub extern "C" fn call() {
     )
     .unwrap_or_revert();
 
-    let fee_change_name: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_name: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_NAME,
         NFTCoreError::MissingFeeChangeName,
         NFTCoreError::InvalidFeeChangeName,
     )
     .unwrap_or_revert();
 
-    let fee_change_stamina: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_stamina: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_STAMINA,
         NFTCoreError::MissingFeeChangeStamina,
         NFTCoreError::InvalidFeeChangeStamina,
     )
     .unwrap_or_revert();
 
-    let fee_change_charisma: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_charisma: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_CHARISMA,
         NFTCoreError::MissingFeeChangeCharisma,
         NFTCoreError::InvalidFeeChangeCharisma,
     )
     .unwrap_or_revert();
 
-    let fee_change_intelligence: u64 = utils::get_named_arg_with_user_errors(
+    let fee_change_intelligence: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_INTELLIGENCE,
         NFTCoreError::MissingFeeChangeIntelligence,
         NFTCoreError::InvalidFeeChangeIntelligence,
@@ -2084,3 +2088,30 @@ pub extern "C" fn call() {
         },
     );
 }
+
+fn call_exp_contract_to_transfer(contract_hash: &Key, owner: Key, recepient: Key, amount: U256) {
+    let contract_hash_addr: HashAddr = contract_hash.into_hash().unwrap_or_revert();
+    let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
+    let _: () = runtime::call_contract(
+        contract_hash,
+        TRANSFER_ENTRY_POINT_NAME,
+        runtime_args! {
+            ARG_EXP_OWNER => owner,
+            ARG_RECEIPIENT => recepient,
+            ARG_AMOUNT => amount,
+        },
+    );
+}
+
+fn call_exp_contract_to_burn(contract_hash: &Key, amount: U256) {
+    let contract_hash_addr: HashAddr = contract_hash.into_hash().unwrap_or_revert();
+    let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
+    let _: () = runtime::call_contract(
+        contract_hash,
+        BURN_ENTRY_POINT_NAME,
+        runtime_args! {
+            ARG_AMOUNT => amount,
+        },
+    );
+}
+
