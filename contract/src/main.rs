@@ -68,250 +68,250 @@ pub extern "C" fn init() {
     }
 
     // Start collecting the runtime arguments.
-    let collection_name: String = utils::get_named_arg_with_user_errors(
-        ARG_COLLECTION_NAME,
-        NFTCoreError::MissingCollectionName,
-        NFTCoreError::InvalidCollectionName,
-    )
-    .unwrap_or_revert();
+    // let collection_name: String = utils::get_named_arg_with_user_errors(
+    //     ARG_COLLECTION_NAME,
+    //     NFTCoreError::MissingCollectionName,
+    //     NFTCoreError::InvalidCollectionName,
+    // )
+    // .unwrap_or_revert();
 
-    let collection_symbol: String = utils::get_named_arg_with_user_errors(
-        ARG_COLLECTION_SYMBOL,
-        NFTCoreError::MissingCollectionSymbol,
-        NFTCoreError::InvalidCollectionSymbol,
-    )
-    .unwrap_or_revert();
+    // let collection_symbol: String = utils::get_named_arg_with_user_errors(
+    //     ARG_COLLECTION_SYMBOL,
+    //     NFTCoreError::MissingCollectionSymbol,
+    //     NFTCoreError::InvalidCollectionSymbol,
+    // )
+    // .unwrap_or_revert();
 
-    let total_token_supply: u64 = utils::get_named_arg_with_user_errors(
-        ARG_TOTAL_TOKEN_SUPPLY,
-        NFTCoreError::MissingTotalTokenSupply,
-        NFTCoreError::InvalidTotalTokenSupply,
-    )
-    .unwrap_or_revert();
+    // let total_token_supply: u64 = utils::get_named_arg_with_user_errors(
+    //     ARG_TOTAL_TOKEN_SUPPLY,
+    //     NFTCoreError::MissingTotalTokenSupply,
+    //     NFTCoreError::InvalidTotalTokenSupply,
+    // )
+    // .unwrap_or_revert();
 
-    let allow_minting: bool = utils::get_named_arg_with_user_errors(
-        ARG_ALLOW_MINTING,
-        NFTCoreError::MissingMintingStatus,
-        NFTCoreError::InvalidMintingStatus,
-    )
-    .unwrap_or_revert();
+    // let allow_minting: bool = utils::get_named_arg_with_user_errors(
+    //     ARG_ALLOW_MINTING,
+    //     NFTCoreError::MissingMintingStatus,
+    //     NFTCoreError::InvalidMintingStatus,
+    // )
+    // .unwrap_or_revert();
 
-    let minting_mode: MintingMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_MINTING_MODE,
-        NFTCoreError::MissingMintingMode,
-        NFTCoreError::InvalidMintingMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let minting_mode: MintingMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_MINTING_MODE,
+    //     NFTCoreError::MissingMintingMode,
+    //     NFTCoreError::InvalidMintingMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let ownership_mode: OwnershipMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_OWNERSHIP_MODE,
-        NFTCoreError::MissingOwnershipMode,
-        NFTCoreError::InvalidOwnershipMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let ownership_mode: OwnershipMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_OWNERSHIP_MODE,
+    //     NFTCoreError::MissingOwnershipMode,
+    //     NFTCoreError::InvalidOwnershipMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let nft_kind: NFTKind = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_NFT_KIND,
-        NFTCoreError::MissingNftKind,
-        NFTCoreError::InvalidNftKind,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let nft_kind: NFTKind = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_NFT_KIND,
+    //     NFTCoreError::MissingNftKind,
+    //     NFTCoreError::InvalidNftKind,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let holder_mode: NFTHolderMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_HOLDER_MODE,
-        NFTCoreError::MissingHolderMode,
-        NFTCoreError::InvalidHolderMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let holder_mode: NFTHolderMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_HOLDER_MODE,
+    //     NFTCoreError::MissingHolderMode,
+    //     NFTCoreError::InvalidHolderMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let whitelist_mode: WhitelistMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_WHITELIST_MODE,
-        NFTCoreError::MissingWhitelistMode,
-        NFTCoreError::InvalidWhitelistMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let whitelist_mode: WhitelistMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_WHITELIST_MODE,
+    //     NFTCoreError::MissingWhitelistMode,
+    //     NFTCoreError::InvalidWhitelistMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let contract_whitelist = utils::get_named_arg_with_user_errors::<Vec<ContractHash>>(
-        ARG_CONTRACT_WHITELIST,
-        NFTCoreError::MissingContractWhiteList,
-        NFTCoreError::InvalidContractWhitelist,
-    )
-    .unwrap_or_revert();
+    // let contract_whitelist = utils::get_named_arg_with_user_errors::<Vec<ContractHash>>(
+    //     ARG_CONTRACT_WHITELIST,
+    //     NFTCoreError::MissingContractWhiteList,
+    //     NFTCoreError::InvalidContractWhitelist,
+    // )
+    // .unwrap_or_revert();
 
-    if WhitelistMode::Locked == whitelist_mode
-        && contract_whitelist.is_empty()
-        && NFTHolderMode::Accounts != holder_mode
-    {
-        runtime::revert(NFTCoreError::EmptyContractWhitelist)
-    }
+    // if WhitelistMode::Locked == whitelist_mode
+    //     && contract_whitelist.is_empty()
+    //     && NFTHolderMode::Accounts != holder_mode
+    // {
+    //     runtime::revert(NFTCoreError::EmptyContractWhitelist)
+    // }
 
-    let json_schema: String = utils::get_named_arg_with_user_errors(
-        ARG_JSON_SCHEMA,
-        NFTCoreError::MissingJsonSchema,
-        NFTCoreError::InvalidJsonSchema,
-    )
-    .unwrap_or_revert();
+    // let json_schema: String = utils::get_named_arg_with_user_errors(
+    //     ARG_JSON_SCHEMA,
+    //     NFTCoreError::MissingJsonSchema,
+    //     NFTCoreError::InvalidJsonSchema,
+    // )
+    // .unwrap_or_revert();
 
-    let receipt_name: String = utils::get_named_arg_with_user_errors(
-        ARG_RECEIPT_NAME,
-        NFTCoreError::MissingReceiptName,
-        NFTCoreError::InvalidReceiptName,
-    )
-    .unwrap_or_revert();
+    // let receipt_name: String = utils::get_named_arg_with_user_errors(
+    //     ARG_RECEIPT_NAME,
+    //     NFTCoreError::MissingReceiptName,
+    //     NFTCoreError::InvalidReceiptName,
+    // )
+    // .unwrap_or_revert();
 
-    let nft_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_NFT_METADATA_KIND,
-        NFTCoreError::MissingNFTMetadataKind,
-        NFTCoreError::InvalidNFTMetadataKind,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let nft_metadata_kind: NFTMetadataKind = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_NFT_METADATA_KIND,
+    //     NFTCoreError::MissingNFTMetadataKind,
+    //     NFTCoreError::InvalidNFTMetadataKind,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
     // Attempt to parse the provided schema and fail installation
     // if the schema cannot be parsed.
-    if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
-        casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
-            .map_err(|_| NFTCoreError::InvalidJsonSchema)
-            .unwrap_or_revert();
-    }
+    // if let NFTMetadataKind::CustomValidated = nft_metadata_kind {
+    //     casper_serde_json_wasm::from_str::<CustomMetadataSchema>(&json_schema)
+    //         .map_err(|_| NFTCoreError::InvalidJsonSchema)
+    //         .unwrap_or_revert();
+    // }
 
-    let identifier_mode: NFTIdentifierMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let identifier_mode: NFTIdentifierMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_IDENTIFIER_MODE,
+    //     NFTCoreError::MissingIdentifierMode,
+    //     NFTCoreError::InvalidIdentifierMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let metadata_mutability: MetadataMutability = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_METADATA_MUTABILITY,
-        NFTCoreError::MissingMetadataMutability,
-        NFTCoreError::InvalidMetadataMutability,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let metadata_mutability: MetadataMutability = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_METADATA_MUTABILITY,
+    //     NFTCoreError::MissingMetadataMutability,
+    //     NFTCoreError::InvalidMetadataMutability,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let burn_mode: BurnMode = utils::get_named_arg_with_user_errors::<u8>(
-        ARG_BURN_MODE,
-        NFTCoreError::MissingBurnMode,
-        NFTCoreError::InvalidBurnMode,
-    )
-    .unwrap_or_revert()
-    .try_into()
-    .unwrap_or_revert();
+    // let burn_mode: BurnMode = utils::get_named_arg_with_user_errors::<u8>(
+    //     ARG_BURN_MODE,
+    //     NFTCoreError::MissingBurnMode,
+    //     NFTCoreError::InvalidBurnMode,
+    // )
+    // .unwrap_or_revert()
+    // .try_into()
+    // .unwrap_or_revert();
 
-    let csp_dev: Key = utils::get_named_arg_with_user_errors(
-        ARG_CSP_DEV,
-        NFTCoreError::MissingCspDev,
-        NFTCoreError::InvalidCspDev,
-    )
-    .unwrap_or_revert();
+    // let csp_dev: Key = utils::get_named_arg_with_user_errors(
+    //     ARG_CSP_DEV,
+    //     NFTCoreError::MissingCspDev,
+    //     NFTCoreError::InvalidCspDev,
+    // )
+    // .unwrap_or_revert();
 
-    let csp_minter: Key = utils::get_named_arg_with_user_errors(
-        ARG_CSP_MINTER,
-        NFTCoreError::MissingCspMinter,
-        NFTCoreError::InvalidCspMinter,
-    )
-    .unwrap_or_revert();
+    // let csp_minter: Key = utils::get_named_arg_with_user_errors(
+    //     ARG_CSP_MINTER,
+    //     NFTCoreError::MissingCspMinter,
+    //     NFTCoreError::InvalidCspMinter,
+    // )
+    // .unwrap_or_revert();
 
-    let exp_contract: Key = utils::get_named_arg_with_user_errors(
-        ARG_EXP_CONTRACT,
-        NFTCoreError::MissingFeeContract,
-        NFTCoreError::InvalidFeeContract,
-    )
-    .unwrap_or_revert();
+    // let exp_contract: Key = utils::get_named_arg_with_user_errors(
+    //     ARG_EXP_CONTRACT,
+    //     NFTCoreError::MissingFeeContract,
+    //     NFTCoreError::InvalidFeeContract,
+    // )
+    // .unwrap_or_revert();
 
-    let fee_change_name: U256 = utils::get_named_arg_with_user_errors(
-        ARG_FEE_CHANGE_NAME,
-        NFTCoreError::MissingFeeChangeName,
-        NFTCoreError::InvalidFeeChangeName,
-    )
-    .unwrap_or_revert();
+    // let fee_change_name: U256 = utils::get_named_arg_with_user_errors(
+    //     ARG_FEE_CHANGE_NAME,
+    //     NFTCoreError::MissingFeeChangeName,
+    //     NFTCoreError::InvalidFeeChangeName,
+    // )
+    // .unwrap_or_revert();
 
-    let fee_change_stamina: U256 = utils::get_named_arg_with_user_errors(
-        ARG_FEE_CHANGE_STAMINA,
-        NFTCoreError::MissingFeeChangeStamina,
-        NFTCoreError::InvalidFeeChangeStamina,
-    )
-    .unwrap_or_revert();
+    // let fee_change_stamina: U256 = utils::get_named_arg_with_user_errors(
+    //     ARG_FEE_CHANGE_STAMINA,
+    //     NFTCoreError::MissingFeeChangeStamina,
+    //     NFTCoreError::InvalidFeeChangeStamina,
+    // )
+    // .unwrap_or_revert();
 
-    let fee_change_charisma: U256 = utils::get_named_arg_with_user_errors(
-        ARG_FEE_CHANGE_CHARISMA,
-        NFTCoreError::MissingFeeChangeCharisma,
-        NFTCoreError::InvalidFeeChangeCharisma,
-    )
-    .unwrap_or_revert();
+    // let fee_change_charisma: U256 = utils::get_named_arg_with_user_errors(
+    //     ARG_FEE_CHANGE_CHARISMA,
+    //     NFTCoreError::MissingFeeChangeCharisma,
+    //     NFTCoreError::InvalidFeeChangeCharisma,
+    // )
+    // .unwrap_or_revert();
 
-    let fee_change_intelligence: U256 = utils::get_named_arg_with_user_errors(
-        ARG_FEE_CHANGE_INTELLIGENCE,
-        NFTCoreError::MissingFeeChangeIntelligence,
-        NFTCoreError::InvalidFeeChangeIntelligence,
-    )
-    .unwrap_or_revert();
+    // let fee_change_intelligence: U256 = utils::get_named_arg_with_user_errors(
+    //     ARG_FEE_CHANGE_INTELLIGENCE,
+    //     NFTCoreError::MissingFeeChangeIntelligence,
+    //     NFTCoreError::InvalidFeeChangeIntelligence,
+    // )
+    // .unwrap_or_revert();
 
     // Put all created URefs into the contract's context (necessary to retain access rights,
     // for future use).
     //
     // Initialize contract with URefs for all invariant values, which can never be changed.
-    runtime::put_key(COLLECTION_NAME, storage::new_uref(collection_name).into());
+    runtime::put_key(COLLECTION_NAME, runtime::get_key(COLLECTION_NAME).unwrap());
     runtime::put_key(
         COLLECTION_SYMBOL,
-        storage::new_uref(collection_symbol).into(),
+        runtime::get_key(COLLECTION_SYMBOL).unwrap(),
     );
     runtime::put_key(
         TOTAL_TOKEN_SUPPLY,
-        storage::new_uref(total_token_supply).into(),
+        runtime::get_key(TOTAL_TOKEN_SUPPLY).unwrap(),
     );
     runtime::put_key(
         OWNERSHIP_MODE,
-        storage::new_uref(ownership_mode as u8).into(),
+        runtime::get_key(OWNERSHIP_MODE).unwrap(),
     );
-    runtime::put_key(NFT_KIND, storage::new_uref(nft_kind as u8).into());
-    runtime::put_key(JSON_SCHEMA, storage::new_uref(json_schema).into());
-    runtime::put_key(MINTING_MODE, storage::new_uref(minting_mode as u8).into());
-    runtime::put_key(HOLDER_MODE, storage::new_uref(holder_mode as u8).into());
+    runtime::put_key(NFT_KIND, runtime::get_key(NFT_KIND).unwrap());
+    runtime::put_key(JSON_SCHEMA, runtime::get_key(JSON_SCHEMA).unwrap());
+    runtime::put_key(MINTING_MODE, runtime::get_key(MINTING_MODE).unwrap());
+    runtime::put_key(HOLDER_MODE, runtime::get_key(HOLDER_MODE).unwrap());
     runtime::put_key(
         WHITELIST_MODE,
-        storage::new_uref(whitelist_mode as u8).into(),
+        runtime::get_key(WHITELIST_MODE).unwrap(),
     );
     runtime::put_key(
         CONTRACT_WHITELIST,
-        storage::new_uref(contract_whitelist).into(),
+        runtime::get_key(CONTRACT_WHITELIST).unwrap(),
     );
-    runtime::put_key(RECEIPT_NAME, storage::new_uref(receipt_name).into());
+    runtime::put_key(RECEIPT_NAME, runtime::get_key(RECEIPT_NAME).unwrap());
     runtime::put_key(
         NFT_METADATA_KIND,
-        storage::new_uref(nft_metadata_kind as u8).into(),
+        runtime::get_key(NFT_METADATA_KIND).unwrap(),
     );
     runtime::put_key(
         IDENTIFIER_MODE,
-        storage::new_uref(identifier_mode as u8).into(),
+        runtime::get_key(IDENTIFIER_MODE).unwrap(),
     );
     runtime::put_key(
         METADATA_MUTABILITY,
-        storage::new_uref(metadata_mutability as u8).into(),
+        runtime::get_key(METADATA_MUTABILITY).unwrap(),
     );
-    runtime::put_key(BURN_MODE, storage::new_uref(burn_mode as u8).into());
+    runtime::put_key(BURN_MODE, runtime::get_key(BURN_MODE).unwrap());
 
     // Initialize contract with variables which must be present but maybe set to
     // different values after initialization.
-    runtime::put_key(ALLOW_MINTING, storage::new_uref(allow_minting).into());
+    runtime::put_key(ALLOW_MINTING, runtime::get_key(ALLOW_MINTING).unwrap());
     // This is an internal variable that the installing account cannot change
     // but is incremented by the contract itself.
-    runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(0u64).into());
+    runtime::put_key(NUMBER_OF_MINTED_TOKENS, runtime::get_key(NUMBER_OF_MINTED_TOKENS).unwrap());
 
     // Create the data dictionaries to store essential values, topically.
     // storage::new_dictionary(TOKEN_OWNERS)
@@ -335,21 +335,21 @@ pub extern "C" fn init() {
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     // storage::new_dictionary(METADATA_RAW)
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    runtime::put_key(CSP_MINTER, storage::new_uref(csp_minter).into());
-    runtime::put_key(CSP_DEV, storage::new_uref(csp_dev).into());
-    runtime::put_key(EXP_CONTRACT, storage::new_uref(exp_contract).into());
-    runtime::put_key(FEE_CHANGE_NAME, storage::new_uref(fee_change_name).into());
+    runtime::put_key(CSP_MINTER, runtime::get_key(CSP_MINTER).unwrap());
+    runtime::put_key(CSP_DEV, runtime::get_key(CSP_DEV).unwrap());
+    runtime::put_key(EXP_CONTRACT, runtime::get_key(EXP_CONTRACT).unwrap());
+    runtime::put_key(FEE_CHANGE_NAME, runtime::get_key(FEE_CHANGE_NAME).unwrap());
     runtime::put_key(
         FEE_CHANGE_STAMINA,
-        storage::new_uref(fee_change_stamina).into(),
+        runtime::get_key(FEE_CHANGE_STAMINA).unwrap(),
     );
     runtime::put_key(
         FEE_CHANGE_CHARISMA,
-        storage::new_uref(fee_change_charisma).into(),
+        runtime::get_key(FEE_CHANGE_CHARISMA).unwrap(),
     );
     runtime::put_key(
         FEE_CHANGE_INTELLIGENCE,
-        storage::new_uref(fee_change_intelligence).into(),
+        runtime::get_key(FEE_CHANGE_INTELLIGENCE).unwrap(),
     );
 }
 
@@ -2284,7 +2284,7 @@ pub extern "C" fn call() {
 
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     // runtime::put_key(CONTRACT_VERSION_2, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION_3, contract_hash.into());
+    runtime::put_key(CONTRACT_VERSION_2, contract_hash.into());
 
     // runtime::put_key(CONTRACT_VERSION_3, storage::new_uref(contract_version).into());
 
@@ -2369,7 +2369,7 @@ pub extern "C" fn call() {
 
     storage::disable_contract_version(
         package_hash,
-        runtime::get_key(CONTRACT_VERSION_2)
+        runtime::get_key(CONTRACT_VERSION_1)
             .unwrap_or_revert()
             .into_hash()
             .unwrap_or_revert()
