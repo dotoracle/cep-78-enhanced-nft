@@ -51,9 +51,9 @@ pub extern "C" fn init() {
     // We only allow the init() entrypoint to be called once.
     // If COLLECTION_NAME uref already exists we revert since this implies that
     // the init() entrypoint has already been called.
-    // if utils::named_uref_exists(COLLECTION_NAME) {
-    //     runtime::revert(NFTCoreError::ContractAlreadyInitialized);
-    // }
+    if utils::named_uref_exists(COLLECTION_NAME) {
+        runtime::revert(NFTCoreError::ContractAlreadyInitialized);
+    }
 
     // Only the installing account may call this method. All other callers are erroneous.
     let installing_account = utils::get_account_hash(
@@ -314,27 +314,27 @@ pub extern "C" fn init() {
     runtime::put_key(NUMBER_OF_MINTED_TOKENS, storage::new_uref(0u64).into());
 
     // Create the data dictionaries to store essential values, topically.
-    // storage::new_dictionary(TOKEN_OWNERS)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(TOKEN_ISSUERS)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(OWNED_TOKENS)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(BURNT_TOKENS)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(TOKEN_COUNTS)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(METADATA_CEP78)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(METADATA_CASPERPUNK)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(METADATA_NFT721)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(METADATA_RAW)
-    //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_OWNERS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_ISSUERS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(OWNED_TOKENS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(BURNT_TOKENS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_COUNTS)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_CUSTOM_VALIDATED)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_CEP78)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_CASPERPUNK)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_NFT721)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(METADATA_RAW)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     runtime::put_key(CSP_MINTER, storage::new_uref(csp_minter).into());
     runtime::put_key(CSP_DEV, storage::new_uref(csp_dev).into());
     runtime::put_key(EXP_CONTRACT, storage::new_uref(exp_contract).into());
@@ -2252,17 +2252,17 @@ pub extern "C" fn call() {
     )
     .unwrap_or(0u8);
 
-    // let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_CASPERPUNK_NAME)
-    //     .unwrap_or_revert()
-    //     .into_hash()
-    //     .map(ContractPackageHash::new)
-    //     .unwrap();
-
     let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_CASPERPUNK_NAME)
         .unwrap_or_revert()
         .into_hash()
-        .unwrap_or_revert()
-        .into();
+        .map(ContractPackageHash::new)
+        .unwrap();
+
+    // let package_hash: ContractPackageHash = runtime::get_key(HASH_KEY_CASPERPUNK_NAME)
+    //     .unwrap_or_revert()
+    //     .into_hash()
+    //     .unwrap_or_revert()
+    //     .into();
 
     // A sentinel string value which represents the entry for the addition
     // of a read only reference to the NFTs owned by the calling `Account` or `Contract`
@@ -2274,9 +2274,9 @@ pub extern "C" fn call() {
         package_hash.to_formatted_string()
     );
 
-    //let (contract_hash, contract_version) = install_nft_contract();
+    let (contract_hash, contract_version) = install_nft_contract();
 
-    let (contract_hash, contract_version) = install_upgradble_nft_contract(package_hash);
+    // let (contract_hash, contract_version) = install_upgradble_nft_contract(package_hash);
 
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     // runtime::put_key(CONTRACT_NAME, contract_hash.into());
@@ -2284,7 +2284,7 @@ pub extern "C" fn call() {
 
 
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION_2, storage::new_uref(contract_version).into());
+    runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 
 
 
