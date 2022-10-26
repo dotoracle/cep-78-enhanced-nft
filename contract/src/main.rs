@@ -320,8 +320,8 @@ pub extern "C" fn init() {
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     // storage::new_dictionary(OWNED_TOKENS)
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    // storage::new_dictionary(BURNT_TOKENS)
+    // storage::new_dictionary(OPERATOR).unwrap_or_revert_with(NFTCoreError::
+    // FailedToCreateDictionary); storage::new_dictionary(BURNT_TOKENS)
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     // storage::new_dictionary(TOKEN_COUNTS)
     //     .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
@@ -2282,11 +2282,11 @@ pub extern "C" fn call() {
     // runtime::put_key(CONTRACT_NAME, contract_hash.into());
     // runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
 
-
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
-    runtime::put_key(CONTRACT_VERSION_3, storage::new_uref(contract_version).into());
+    // runtime::put_key(CONTRACT_VERSION_2, contract_hash.into());
+    runtime::put_key(CONTRACT_VERSION_3, contract_hash.into());
 
-
+    // runtime::put_key(CONTRACT_VERSION_3, storage::new_uref(contract_version).into());
 
     let csp_dev: Key = utils::get_named_arg_with_user_errors::<Key>(
         ARG_CSP_DEV,
@@ -2369,15 +2369,6 @@ pub extern "C" fn call() {
 
     storage::disable_contract_version(
         package_hash,
-        runtime::get_key(CONTRACT_VERSION)
-            .unwrap_or_revert()
-            .into_hash()
-            .unwrap_or_revert()
-            .into(),
-    )
-    .unwrap_or_revert();
-    storage::disable_contract_version(
-        package_hash,
         runtime::get_key(CONTRACT_VERSION_2)
             .unwrap_or_revert()
             .into_hash()
@@ -2385,8 +2376,15 @@ pub extern "C" fn call() {
             .into(),
     )
     .unwrap_or_revert();
-
-
+    // storage::disable_contract_version(
+    //     package_hash,
+    //     runtime::get_key(CONTRACT_VERSION_2)
+    //         .unwrap_or_revert()
+    //         .into_hash()
+    //         .unwrap_or_revert()
+    //         .into(),
+    // )
+    // .unwrap_or_revert();
 }
 
 fn call_exp_contract_to_transfer(contract_hash: &Key, owner: Key, recepient: Key, amount: U256) {
