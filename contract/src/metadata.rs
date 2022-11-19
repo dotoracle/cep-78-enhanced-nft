@@ -10,7 +10,7 @@ use casper_contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use casper_types::{
     bytesrepr,
     bytesrepr::{FromBytes, ToBytes},
-    CLType, CLTyped,
+    CLType, CLTyped, Key
 };
 
 use crate::{
@@ -186,6 +186,15 @@ pub(crate) fn get_metadata_schema(kind: &NFTMetadataKind) -> CustomMetadataSchem
                     required: true,
                 },
             );
+            // properties.insert(
+            //     "creator".to_string(),
+            //     MetadataSchemaProperty {
+            //         name: "creator".to_string(),
+            //         description: "CasperPunk creator".to_string(),
+            //         required: true,
+            //     },
+            // );
+
             CustomMetadataSchema { properties }
         }
         NFTMetadataKind::CustomValidated => {
@@ -252,6 +261,7 @@ pub(crate) struct MetadataCasperPunk {
     pub charisma: u64,
     pub intelligence: u64,
     pub rarity: u64,
+    // pub creator: Key,
 }
 
 // Using a structure for the purposes of serialization formatting.

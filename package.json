@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "3mint": "node scripts/mint3.js",
     "mint": "node -r esm scripts/mint.js",
     "2mint": "node -r esm scripts/mint2.js",
     "balanceof": "node -r esm scripts/getBalance.js",
-    "deploy": "node -r esm scripts/deployContract.js",
+    "deploy": "node -r esm scripts/deployCSP.js",
     "transfer": "node -r esm scripts/transferNFT.js",
     "2transfer": "node -r esm scripts/transfer2.js",
+    "changeName": "node -r esm scripts/changeNftName.js",
     "state": "node -r esm scripts/checkStateRootHash.js"
   },
   "keywords": [],

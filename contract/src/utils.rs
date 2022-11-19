@@ -390,7 +390,7 @@ pub(crate) fn is_token_burned(token_identifier: &TokenIdentifier) -> bool {
 }
 
 pub(crate) fn get_self_key() -> Key {
-    let self_addr = get_self_address().unwrap_or_revert();
+    let self_addr = get_self_address().unwrap_or_revert_with(NFTCoreError::ErrorGetSeflKey1);
     return get_key_from_address(&self_addr);
 }
 pub(crate) fn get_self_address() -> Result<Address, NFTCoreError> {

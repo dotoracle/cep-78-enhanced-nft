@@ -37,6 +37,7 @@ use casper_contract::{
 };
 
 use crate::{
+    address::*,
     constants::*,
     error::NFTCoreError,
     metadata::{CustomMetadataSchema, MetadataCasperPunk},
@@ -234,6 +235,13 @@ pub extern "C" fn init() {
     )
     .unwrap_or_revert();
 
+    let exp_package_hash: Key = utils::get_named_arg_with_user_errors(
+        ARG_EXP_PACKAGE_HASH,
+        NFTCoreError::MissingFeeContractPackage,
+        NFTCoreError::InvalidFeeContractPackage,
+    )
+    .unwrap_or_revert();
+
     let fee_change_name: U256 = utils::get_named_arg_with_user_errors(
         ARG_FEE_CHANGE_NAME,
         NFTCoreError::MissingFeeChangeName,
@@ -316,6 +324,9 @@ pub extern "C" fn init() {
     // Create the data dictionaries to store essential values, topically.
     storage::new_dictionary(TOKEN_OWNERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+    storage::new_dictionary(TOKEN_CREATOR)
+        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
+
     storage::new_dictionary(TOKEN_ISSUERS)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(OWNED_TOKENS)
@@ -338,6 +349,7 @@ pub extern "C" fn init() {
     runtime::put_key(CSP_MINTER, storage::new_uref(csp_minter).into());
     runtime::put_key(CSP_DEV, storage::new_uref(csp_dev).into());
     runtime::put_key(EXP_CONTRACT, storage::new_uref(exp_contract).into());
+    runtime::put_key(EXP_PACKAGE_HASH, storage::new_uref(exp_package_hash).into());
     runtime::put_key(FEE_CHANGE_NAME, storage::new_uref(fee_change_name).into());
     runtime::put_key(
         FEE_CHANGE_STAMINA,
@@ -646,9 +658,15 @@ pub extern "C" fn mint() {
     let receipt = CLValue::from_t((
         receipt_name,
         owned_tokens_actual_key,
-        token_identifier_string,
+        token_identifier_string.clone(),
     ))
     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+    utils::upsert_dictionary_value_from_key(
+        TOKEN_CREATOR,
+        &token_identifier_string,
+        token_owner_key,
+    );
+
     runtime::ret(receipt)
 }
 
@@ -812,14 +830,6 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
         NFTCoreError::InvalidNftOwner,
     )
     .unwrap_or_revert();
-
-    // token Id input
-    // let token_id_to_update: u64 = utils::get_named_arg_with_user_errors::<u64>(
-    //     ARG_TOKEN_ID,
-    //     NFTCoreError::MissingTokenID,
-    //     NFTCoreError::InvalidTokenIdentifier,
-    // )
-    // .unwrap_or_revert();
     let token_owner = utils::get_dictionary_value_from_key::<Key>(
         TOKEN_OWNERS,
         &token_identifier.get_dictionary_item_key(),
@@ -837,7 +847,7 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
     // Calculate EXP fee
 
     let exp_contract = utils::get_stored_value_with_user_errors::<Key>(
-        NFT_METADATA_KIND,
+        EXP_CONTRACT,
         NFTCoreError::MissingFeeContract,
         NFTCoreError::InvalidFeeContract,
     );
@@ -849,8 +859,11 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
 
     let self_key = utils::get_self_key();
 
-    call_exp_contract_to_transfer(&exp_contract, nft_owner, self_key, fee_change_name);
-    call_exp_contract_to_burn(&exp_contract, fee_change_name);
+    // Transfer EXP fee from nft_owner to this contract
+    call_exp_contract_to_transfer_from(nft_owner, self_key, fee_change_name);
+
+    // Burn EXP fee
+    call_exp_contract_to_burn(self_key, fee_change_name);
 
     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
         NFT_METADATA_KIND,
@@ -872,7 +885,7 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
 
     // Compare new and old name
 
-    if (updated_token_name == metadata.name) {
+    if updated_token_name == metadata.name {
         runtime::revert(NFTCoreError::SameName)
     }
     let maybe_update_metadata = MetadataCasperPunk {
@@ -883,6 +896,7 @@ pub extern "C" fn change_token_name() -> Result<(), NFTCoreError> {
         charisma: metadata.charisma,
         intelligence: metadata.intelligence,
         rarity: metadata.rarity,
+        // creator: metadata.creator,
     };
 
     let update_metadata = casper_serde_json_wasm::to_string(&maybe_update_metadata)
@@ -1412,6 +1426,51 @@ pub extern "C" fn owner_of() {
 }
 
 #[no_mangle]
+pub extern "C" fn get_token_creator() {
+    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+        IDENTIFIER_MODE,
+        NFTCoreError::MissingIdentifierMode,
+        NFTCoreError::InvalidIdentifierMode,
+    )
+    .try_into()
+    .unwrap_or_revert();
+
+    let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+
+    let number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingNumberOfMintedTokens,
+        NFTCoreError::InvalidNumberOfMintedTokens,
+    );
+
+    if let NFTIdentifierMode::Ordinal = identifier_mode {
+        // Revert if token_id is out of bounds
+        if token_identifier.get_index().unwrap_or_revert() >= number_of_minted_tokens {
+            runtime::revert(NFTCoreError::InvalidTokenIdentifier);
+        }
+    }
+
+
+
+    let maybe_token_creator = utils::get_dictionary_value_from_key::<Key>(
+        TOKEN_CREATOR,
+        &token_identifier.get_dictionary_item_key(),
+    );
+
+    let token_creator = match maybe_token_creator {
+        Some(token_creator) => token_creator,
+        None => runtime::revert(NFTCoreError::InvalidTokenIdentifier),
+    };
+
+
+    let token_creator_cl_value =
+        CLValue::from_t(token_creator).unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+
+    runtime::ret(token_creator_cl_value);
+}
+
+
+#[no_mangle]
 pub extern "C" fn metadata() {
     let number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
@@ -1457,6 +1516,64 @@ pub extern "C" fn metadata() {
         runtime::revert(NFTCoreError::InvalidTokenIdentifier)
     }
 }
+// #[no_mangle]
+// pub extern "C" fn get_creator() -> Key {
+//     let number_of_minted_tokens = utils::get_stored_value_with_user_errors::<u64>(
+//         NUMBER_OF_MINTED_TOKENS,
+//         NFTCoreError::MissingNumberOfMintedTokens,
+//         NFTCoreError::InvalidNumberOfMintedTokens,
+//     );
+
+//     let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
+//         IDENTIFIER_MODE,
+//         NFTCoreError::MissingIdentifierMode,
+//         NFTCoreError::InvalidIdentifierMode,
+//     )
+//     .try_into()
+//     .unwrap_or_revert();
+
+//     let token_identifier = utils::get_token_identifier_from_runtime_args(&identifier_mode);
+
+//     if let NFTIdentifierMode::Ordinal = identifier_mode {
+//         // Revert if token_id is out of bounds
+//         if token_identifier.get_index().unwrap_or_revert() >= number_of_minted_tokens {
+//             runtime::revert(NFTCoreError::InvalidTokenIdentifier);
+//         }
+//     }
+
+//     let metadata_kind: NFTMetadataKind = utils::get_stored_value_with_user_errors::<u8>(
+//         METADATA_SCHEMA,
+//         NFTCoreError::MissingNFTMetadataKind,
+//         NFTCoreError::InvalidNFTMetadataKind,
+//     )
+//     .try_into()
+//     .unwrap_or_revert();
+
+//     let maybe_token_metadata = utils::get_dictionary_value_from_key::<String>(
+//         &metadata::get_metadata_dictionary_name(&metadata_kind),
+//         &token_identifier.get_dictionary_item_key(),
+//     );
+
+//     if let Some(metadata) = maybe_token_metadata {
+//         let metadata_casperpunk = casper_serde_json_wasm::from_str::<MetadataCasperPunk>(&metadata);
+
+//         if metadata_casperpunk.is_ok() {
+//             let metadata_unwrap = metadata_casperpunk.unwrap();
+//             let nft_creator: Key = metadata_unwrap.creator;
+//             let nft_creator_cl_value = CLValue::from_t(nft_creator)
+//                 .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+//             runtime::ret(nft_creator_cl_value);
+//         } else {
+//             runtime::revert(NFTCoreError::InvalidTokenMetaData)
+//         }
+//         // let metadata_cl_value =
+//         //     CLValue::from_t(metadata).unwrap_or_revert_with(NFTCoreError::
+//         // FailedToConvertToCLValue); runtime::ret(metadata_cl_value);
+//     } else {
+//         runtime::revert(NFTCoreError::InvalidTokenIdentifier)
+//     }
+// }
+
 
 // Returns approved account_hash from token_id, throws error if token id is not valid
 #[no_mangle]
@@ -1600,6 +1717,7 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
                 Parameter::new(ARG_CSP_MINTER, CLType::Key),
                 Parameter::new(ARG_CSP_DEV, CLType::Key),
                 Parameter::new(ARG_EXP_CONTRACT, CLType::Key),
+                Parameter::new(ARG_EXP_PACKAGE_HASH, CLType::Key),
                 Parameter::new(ARG_FEE_CHANGE_NAME, CLType::U256),
                 Parameter::new(ARG_FEE_CHANGE_STAMINA, CLType::U256),
                 Parameter::new(ARG_FEE_CHANGE_CHARISMA, CLType::U256),
@@ -1752,6 +1870,24 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
             EntryPointType::Contract,
         );
 
+        // // This entrypoint returns the CREATOR associated with the provided token_id
+        // let get_creator = EntryPoint::new(
+        //     ENTRY_POINT_GET_CREATOR,
+        //     vec![],
+        //     CLType::Key,
+        //     EntryPointAccess::Public,
+        //     EntryPointType::Contract,
+        // );
+
+        // This entrypoint returns the CREATOR associated with the provided token_id
+        let get_token_creator = EntryPoint::new(
+            ENTRY_POINT_GET_TOKEN_CREATOR,
+            vec![],
+            CLType::Key,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         // This entrypoint updates the metadata if valid.
         let set_token_metadata = EntryPoint::new(
             ENTRY_POINT_SET_TOKEN_METADATA,
@@ -1817,6 +1953,8 @@ fn install_nft_contract() -> (ContractHash, ContractVersion) {
         entry_points.add_entry_point(change_token_name);
         entry_points.add_entry_point(change_fee_change_name);
         entry_points.add_entry_point(change_exp_contract);
+        // entry_points.add_entry_point(get_creator);
+        entry_points.add_entry_point(get_token_creator);
         entry_points
     };
 
@@ -1869,6 +2007,7 @@ fn install_upgradble_nft_contract(
                 Parameter::new(ARG_CSP_MINTER, CLType::Key),
                 Parameter::new(ARG_CSP_DEV, CLType::Key),
                 Parameter::new(ARG_EXP_CONTRACT, CLType::Key),
+                Parameter::new(ARG_EXP_PACKAGE_HASH, CLType::Key),
                 Parameter::new(ARG_FEE_CHANGE_NAME, CLType::U256),
                 Parameter::new(ARG_FEE_CHANGE_STAMINA, CLType::U256),
                 Parameter::new(ARG_FEE_CHANGE_CHARISMA, CLType::U256),
@@ -2021,6 +2160,24 @@ fn install_upgradble_nft_contract(
             EntryPointType::Contract,
         );
 
+        // // This entrypoint returns the CREATOR associated with the provided token_id
+        // let get_creator = EntryPoint::new(
+        //     ENTRY_POINT_GET_CREATOR,
+        //     vec![],
+        //     CLType::Key,
+        //     EntryPointAccess::Public,
+        //     EntryPointType::Contract,
+        // );
+
+        // This entrypoint returns the CREATOR associated with the provided token_id
+        let get_token_creator = EntryPoint::new(
+            ENTRY_POINT_GET_TOKEN_CREATOR,
+            vec![],
+            CLType::Key,
+            EntryPointAccess::Public,
+            EntryPointType::Contract,
+        );
+
         // This entrypoint updates the metadata if valid.
         let set_token_metadata = EntryPoint::new(
             ENTRY_POINT_SET_TOKEN_METADATA,
@@ -2086,6 +2243,8 @@ fn install_upgradble_nft_contract(
         entry_points.add_entry_point(change_token_name);
         entry_points.add_entry_point(change_fee_change_name);
         entry_points.add_entry_point(change_exp_contract);
+        // entry_points.add_entry_point(get_creator);
+        entry_points.add_entry_point(get_token_creator);
         entry_points
     };
 
@@ -2281,11 +2440,9 @@ pub extern "C" fn call() {
     // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
     // runtime::put_key(CONTRACT_NAME, contract_hash.into());
     // runtime::put_key(CONTRACT_VERSION, storage::new_uref(contract_version).into());
+
     runtime::put_key(CONTRACT_NAME, contract_hash.into());
     runtime::put_key(CONTRACT_VERSION_1, contract_hash.into());
-    //runtime::put_key(CONTRACT_VERSION_1, storage::new_uref(contract_version).into());
-
-
 
     let csp_dev: Key = utils::get_named_arg_with_user_errors::<Key>(
         ARG_CSP_DEV,
@@ -2304,6 +2461,13 @@ pub extern "C" fn call() {
         ARG_EXP_CONTRACT,
         NFTCoreError::MissingFeeContract,
         NFTCoreError::InvalidFeeContract,
+    )
+    .unwrap_or_revert();
+
+    let exp_packgage_hash: Key = utils::get_named_arg_with_user_errors::<Key>(
+        ARG_EXP_PACKAGE_HASH,
+        NFTCoreError::MissingFeeContractPackage,
+        NFTCoreError::InvalidFeeContractPackage,
     )
     .unwrap_or_revert();
 
@@ -2359,6 +2523,7 @@ pub extern "C" fn call() {
              ARG_CSP_MINTER => csp_minter,
              ARG_BURN_MODE => burn_mode,
              ARG_EXP_CONTRACT => exp_contract,
+             ARG_EXP_PACKAGE_HASH => exp_packgage_hash,
              ARG_FEE_CHANGE_NAME => fee_change_name,
              ARG_FEE_CHANGE_STAMINA => fee_change_stamina,
              ARG_FEE_CHANGE_CHARISMA => fee_change_charisma,
@@ -2367,28 +2532,83 @@ pub extern "C" fn call() {
     );
 }
 
-fn call_exp_contract_to_transfer(contract_hash: &Key, owner: Key, recepient: Key, amount: U256) {
-    let contract_hash_addr: HashAddr = contract_hash.into_hash().unwrap_or_revert();
-    let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
-    let _: () = runtime::call_contract(
-        contract_hash,
-        TRANSFER_ENTRY_POINT_NAME,
+fn call_exp_contract_to_transfer_from(owner: Key, recipient: Key, amount: U256) {
+    let exp_package_hash_add: HashAddr = utils::get_stored_value_with_user_errors::<Key>(
+        EXP_PACKAGE_HASH,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    )
+    .into_hash()
+    .unwrap_or_revert_with(NFTCoreError::CantGetPackageHashAdd);
+    let exp_package_hash: ContractPackageHash = ContractPackageHash::new(exp_package_hash_add);
+
+    let _: () = runtime::call_versioned_contract(
+        exp_package_hash,
+        None,
+        TRANSFER_FROM_ENTRY_POINT_NAME,
         runtime_args! {
             ARG_EXP_OWNER => owner,
-            ARG_RECEIPIENT => recepient,
+            ARG_RECIPIENT => recipient,
             ARG_AMOUNT => amount,
         },
     );
+
+    // let exp_contract: Key = utils::get_stored_value_with_user_errors::<Key>(
+    //     EXP_CONTRACT,
+    //     NFTCoreError::MissingFeeContract,
+    //     NFTCoreError::InvalidFeeContract,
+    // );
+
+    // let contract_hash_addr: HashAddr = exp_contract.into_hash().unwrap_or_revert();
+    // let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
+    // let _: () = runtime::call_contract(
+    //     contract_hash,
+    //     TRANSFER_FROM_ENTRY_POINT_NAME,
+    //     runtime_args! {
+    //         ARG_EXP_OWNER => owner,
+    //         ARG_RECIPIENT => recipient,
+    //         ARG_AMOUNT => amount,
+    //     },
+    // );
 }
 
-fn call_exp_contract_to_burn(contract_hash: &Key, amount: U256) {
-    let contract_hash_addr: HashAddr = contract_hash.into_hash().unwrap_or_revert();
-    let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
-    let _: () = runtime::call_contract(
-        contract_hash,
+fn call_exp_contract_to_burn(owner: Key, amount: U256) {
+    let exp_package_hash_add: HashAddr = utils::get_stored_value_with_user_errors::<Key>(
+        EXP_PACKAGE_HASH,
+        NFTCoreError::MissingCspMinter,
+        NFTCoreError::InvalidCspMinter,
+    )
+    .into_hash()
+    .unwrap_or_revert_with(NFTCoreError::CantGetPackageHashAdd);
+    let exp_package_hash: ContractPackageHash = ContractPackageHash::new(exp_package_hash_add);
+
+    let _: () = runtime::call_versioned_contract(
+        exp_package_hash,
+        None,
         BURN_ENTRY_POINT_NAME,
         runtime_args! {
+            ARG_EXP_OWNER => owner,
             ARG_AMOUNT => amount,
         },
     );
+
+    // let exp_contract: Key = utils::get_stored_value_with_user_errors::<Key>(
+    //     EXP_CONTRACT,
+    //     NFTCoreError::MissingFeeContract,
+    //     NFTCoreError::InvalidFeeContract,
+    // );
+
+    // let contract_hash_addr: HashAddr = exp_contract.into_hash().unwrap_or_revert();
+    // let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
+
+    // let contract_hash_addr: HashAddr = contract_hash.into_hash().unwrap_or_revert();
+    // let contract_hash: ContractHash = ContractHash::new(contract_hash_addr);
+    // let _: () = runtime::call_contract(
+    //     contract_hash,
+    //     BURN_ENTRY_POINT_NAME,
+    //     runtime_args! {
+    //         ARG_EXP_OWNER => owner,
+    //         ARG_AMOUNT => amount,
+    //     },
+    // );
 }
