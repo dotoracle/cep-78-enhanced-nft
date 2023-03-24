@@ -402,10 +402,6 @@ pub extern "C" fn init() {
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
     storage::new_dictionary(USER_MINT_ID_LIST)
         .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_IDS_OF_MINT_ID)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
-    storage::new_dictionary(TOKEN_METADATAS_OF_MINT_ID)
-        .unwrap_or_revert_with(NFTCoreError::FailedToCreateDictionary);
 
     if vec![
         OwnerReverseLookupMode::Complete,
