@@ -3,3 +3,6 @@ Cargo.lock
 wasm
 .vscode/
 .DS_Store
+node_modules
+
+
