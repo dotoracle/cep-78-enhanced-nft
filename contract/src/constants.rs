@@ -5,6 +5,8 @@ pub const PREFIX_CONTRACT_VERSION: &str = "cep78_contract_version";
 pub const PREFIX_HASH_KEY_NAME: &str = "cep78_contract_package";
 pub const PREFIX_PAGE_DICTIONARY: &str = "page";
 
+pub const ARG_CONTRACT_OWNER: &str = "contract_owner";
+pub const ARG_MINTER: &str = "minter";
 pub const ARG_ACCESS_KEY_NAME_1_0_0: &str = "access_key_name";
 pub const ARG_ADDITIONAL_REQUIRED_METADATA: &str = "additional_required_metadata";
 pub const ARG_ALLOW_MINTING: &str = "allow_minting";
@@ -33,8 +35,13 @@ pub const ARG_SOURCE_KEY: &str = "source_key";
 pub const ARG_SPENDER: &str = "spender";
 pub const ARG_TARGET_KEY: &str = "target_key";
 pub const ARG_TOKEN_HASH: &str = "token_hash";
+pub const ARG_TOKEN_HASHES: &str = "token_hashes";
+
 pub const ARG_TOKEN_ID: &str = "token_id";
+pub const ARG_TOKEN_IDS: &str = "token_ids";
+
 pub const ARG_TOKEN_META_DATA: &str = "token_meta_data";
+pub const ARG_TOKEN_META_DATAS: &str = "token_meta_datas";
 pub const ARG_TOKEN_OWNER: &str = "token_owner";
 pub const ARG_TOTAL_TOKEN_SUPPLY: &str = "total_token_supply";
 pub const ARG_WHITELIST_MODE: &str = "whitelist_mode";
@@ -42,12 +49,14 @@ pub const ARG_WHITELIST_MODE: &str = "whitelist_mode";
 pub const ENTRY_POINT_APPROVE: &str = "approve";
 pub const ENTRY_POINT_BALANCE_OF: &str = "balance_of";
 pub const ENTRY_POINT_BURN: &str = "burn";
+pub const ENTRY_POINT_TRANSFER_OWNER: &str = "transfer_owner";
+pub const ENTRY_POINT_CHANGE_MINTER: &str = "change_minter";
+pub const ENTRY_POINT_REQUEST_BRIDGE_BACK: &str = "request_bridge_back"; // REQUEST_BRIDGE_BACK
 pub const ENTRY_POINT_GET_APPROVED: &str = "get_approved";
 pub const ENTRY_POINT_INIT: &str = "init";
 pub const ENTRY_POINT_IS_APPROVED_FOR_ALL: &str = "is_approved_for_all";
 pub const ENTRY_POINT_METADATA: &str = "metadata";
 pub const ENTRY_POINT_MIGRATE: &str = "migrate";
-pub const ENTRY_POINT_MINT: &str = "mint";
 pub const ENTRY_POINT_OWNER_OF: &str = "owner_of";
 pub const ENTRY_POINT_REVOKE: &str = "revoke";
 pub const ENTRY_POINT_REGISTER_OWNER: &str = "register_owner";
@@ -57,6 +66,11 @@ pub const ENTRY_POINT_SET_VARIABLES: &str = "set_variables";
 pub const ENTRY_POINT_TRANSFER: &str = "transfer";
 pub const ENTRY_POINT_UPDATED_RECEIPTS: &str = "updated_receipts";
 
+pub const ARG_RECEIVER_ADDRESS: &str = "receiver_address";
+pub const ARG_TO_CHAINID: &str = "to_chainid";
+
+pub const CONTRACT_OWNER: &str = "contract_owner";
+pub const MINTER: &str = "minter";
 pub const ALLOW_MINTING: &str = "allow_minting";
 pub const APPROVED: &str = "approved";
 pub const BURN_MODE: &str = "burn_mode";
@@ -110,3 +124,11 @@ pub const MAX_TOTAL_TOKEN_SUPPLY: u64 = 1_000_000u64;
 
 pub const ACCESS_KEY_NAME_1_0_0: &str = "nft_contract_package_access";
 pub const HASH_KEY_NAME_1_0_0: &str = "nft_contract_package";
+pub const ARG_MINT_ID: &str = "mint_id";
+pub const DTO_MINT_IDS: &str = "mintids";
+pub const DTO_REQUEST_INDEX: &str = "request_index";
+pub const DTO_REQUEST_IDS: &str = "request_ids";
+pub const ARG_REQUEST_ID: &str = "request_id";
+pub const USER_MINT_ID_LIST: &str = "user_mint_id_list";
+pub const TOKEN_IDS_OF_MINT_ID: &str = "token_ids_of_mint_id";
+pub const TOKEN_METADATAS_OF_MINT_ID: &str = "token_metadatas_of_mint_id";

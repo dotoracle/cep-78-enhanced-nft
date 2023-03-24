@@ -158,6 +158,22 @@ pub enum NFTCoreError {
     MissingSpenderAccountHash = 153,
     InvalidSpenderAccountHash = 154,
     MissingOwnerTokenIdentifierKey = 155,
+    MissingMinter = 200,
+    MissingContractOwner = 201,
+    InvalidContractOwner = 202,
+    MissingDtoMintID = 203,
+    InvalidDtoMintID = 204,
+    DTOMintIdExist = 205,
+    InvalidMetadataLength = 206,
+    TooManyTokenIds = 207,
+    MissingRequestIndex = 208,
+    InvalidRequestIndex = 209,
+    RequestIdIlledFormat = 210,
+    RequestIdRepeated = 211,
+    
+
+
+
 }
 
 impl From<NFTCoreError> for ApiError {

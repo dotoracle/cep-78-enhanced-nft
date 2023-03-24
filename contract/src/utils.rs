@@ -8,6 +8,19 @@ use alloc::{
 use casper_event_standard::Schemas;
 use core::{convert::TryInto, mem::MaybeUninit};
 
+use crate::{
+    constants::*,
+    error::NFTCoreError,
+    events::events_ces::{
+        Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
+        Transfer, VariablesSet,
+    },
+    modalities::{
+        BurnMode, MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
+        OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
+    },
+    utils,
+};
 use casper_contract::{
     contract_api::{self, runtime, storage},
     ext_ffi,
@@ -19,25 +32,6 @@ use casper_types::{
     bytesrepr::{self, FromBytes, ToBytes},
     system::CallStackElement,
     ApiError, CLTyped, ContractHash, Key, URef,
-};
-
-use crate::{
-    constants::{
-        ARG_TOKEN_HASH, ARG_TOKEN_ID, BURNT_TOKENS, BURN_MODE, HASH_BY_INDEX, HOLDER_MODE,
-        INDEX_BY_HASH, MIGRATION_FLAG, NUMBER_OF_MINTED_TOKENS, OWNED_TOKENS, OWNERSHIP_MODE,
-        PAGE_LIMIT, PAGE_TABLE, PREFIX_PAGE_DICTIONARY, RECEIPT_NAME, REPORTING_MODE, RLO_MFLAG,
-        TOKEN_OWNERS, UNMATCHED_HASH_COUNT,
-    },
-    error::NFTCoreError,
-    events::events_ces::{
-        Approval, ApprovalForAll, ApprovalRevoked, Burn, MetadataUpdated, Migration, Mint,
-        Transfer, VariablesSet,
-    },
-    modalities::{
-        BurnMode, MetadataRequirement, NFTHolderMode, NFTIdentifierMode, NFTMetadataKind,
-        OwnerReverseLookupMode, OwnershipMode, Requirement, TokenIdentifier,
-    },
-    utils,
 };
 
 // The size of a given page, it is currently set to 1000
@@ -824,3 +818,61 @@ pub fn requires_rlo_migration() -> bool {
         },
     }
 }
+
+pub(crate) fn set_key<T: ToBytes + CLTyped>(name: &str, value: T) {
+    match runtime::get_key(name) {
+        Some(key) => {
+            let key_ref = key.try_into().unwrap_or_revert();
+            storage::write(key_ref, value);
+        }
+        None => {
+            let key = storage::new_uref(value).into();
+            runtime::put_key(name, key);
+        }
+    }
+}
+
+pub(crate) fn get_mint_id_dict_key(mintid: &String) -> String {
+    let mint_id_bytes = mintid.as_bytes();
+    let key_bytes = runtime::blake2b(mint_id_bytes);
+    hex::encode(&key_bytes)
+}
+
+pub(crate) fn get_token_identifiers_from_runtime_args(
+    identifier_mode: &NFTIdentifierMode,
+) -> Vec<TokenIdentifier> {
+    match identifier_mode {
+        NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<Vec<u64>>(
+            ARG_TOKEN_ID,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
+        )
+        .unwrap_or_revert()
+        .iter()
+        .map(|identifier| TokenIdentifier::new_index(*identifier))
+        .collect::<Vec<_>>(),
+        NFTIdentifierMode::Hash => get_named_arg_with_user_errors::<Vec<String>>(
+            ARG_TOKEN_HASHES,
+            NFTCoreError::MissingTokenID,
+            NFTCoreError::InvalidTokenIdentifier,
+        )
+        .unwrap_or_revert()
+        .iter()
+        .map(|identier| TokenIdentifier::new_hash(identier.clone()))
+        .collect::<Vec<_>>(),
+    }
+}
+
+pub(crate) fn get_request_id_dict_key(request_id: &String) -> String {
+    request_id.clone()
+}
+
+// pub(crate) fn get_immediate_caller_key() -> Key {
+//     let addr = get_immediate_caller_address().unwrap_or_revert();
+//     get_key_from_address(&addr)
+// }
+// pub(crate) fn get_immediate_caller_address() -> Result<Address, Error> {
+//     get_immediate_call_stack_item()
+//         .map(call_stack_element_to_address)
+//         .ok_or(Error::InvalidContext)
+// }
