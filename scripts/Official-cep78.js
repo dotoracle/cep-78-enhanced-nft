@@ -41,6 +41,11 @@ const CEP78 = class {
             "page_10",
             "user_mint_id_list",
             "hash_by_index",
+            "events",
+            "index_by_hash",
+            "receipt_name",
+            "rlo_mflag",
+            "reporting_mode",
             // "token_owners",
 
         ];
