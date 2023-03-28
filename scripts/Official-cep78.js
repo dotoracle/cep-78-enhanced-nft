@@ -5,7 +5,7 @@ const {
 } = require("casper-js-client-helper");
 const { DEFAULT_TTL } = require("casper-js-client-helper/dist/constants");
 
-const { CLValueBuilder, RuntimeArgs, CLAccountHash, CLString, CLPublicKey } = require("casper-js-sdk");
+const { CLValueBuilder, RuntimeArgs, CLAccountHash, CLString, CLPublicKey, CLByteArray } = require("casper-js-sdk");
 
 const { setClient, contractSimpleGetter, createRecipientAddress } = helpers;
 
@@ -34,6 +34,13 @@ const CEP78 = class {
             "page_3",
             "page_4",
             "page_5",
+            "page_6",
+            "page_7",
+            "page_8",
+            "page_9",
+            "page_10",
+            "user_mint_id_list",
+            "hash_by_index",
             // "token_owners",
 
         ];
@@ -261,6 +268,23 @@ const CEP78 = class {
         }
     }
 
+    async userMintIdList(account) {
+        try {
+            let itemKey = CEP78.getAccountItemKey(account);
+            console.log("itemKey ", itemKey)
+            console.log("here", this.namedKeys.userMintIdList)
+            const result = await utils.contractDictionaryGetter(
+                this.nodeAddress,
+                itemKey,
+                this.namedKeys.userMintIdList
+            );
+            console.log("result", result)
+            return result;
+        } catch (e) {
+            throw e;
+        }
+    }
+
     async balanceOf(account) {
         try {
             let itemKey = CEP78.getAccountItemKey(account);
@@ -274,7 +298,6 @@ const CEP78 = class {
             throw e;
         }
     }
-
 
     async getOwnedTokenIds(account) {
         let table = []
@@ -323,6 +346,66 @@ const CEP78 = class {
 
     }
 
+    async getOwnedTokenIdsHash(account) {
+        let table = []
+        try {
+            let itemKey = CEP78.getAccountItemKey(account);
+            console.log(this.namedKeys.pageTable)
+            const result = await utils.contractDictionaryGetter(
+                this.nodeAddress,
+                itemKey,
+                this.namedKeys.pageTable
+            );
+
+
+            for (var i = 0; i < result.length; i++) {
+                if (result[i].data == true) {
+                    table.push(i)
+                }
+            }
+
+            let tokenIds = []
+
+            for (var j = 0; j < table.length; j++) {
+
+                let k = table[j]
+
+                let numberOfPage = "page_" + k
+                console.log(numberOfPage.toString())
+                const result = await utils.contractDictionaryGetter(
+                    this.nodeAddress,
+                    itemKey,
+                    this.namedKeys[numberOfPage]
+                );
+                for (var i = 0; i < result.length; i++) {
+                    if (result[i].data == true) {
+                        tokenIds.push(i)
+                    }
+                }
+
+            }
+            let final = []
+            console.log("tokenIds ", tokenIds)
+            for (var m = 0; m < tokenIds.length; m++) {
+                let string = tokenIds[m].toString()
+
+                console.log(tokenIds[m])
+                console.log(this.namedKeys.hashByIndex)
+                const result = await utils.contractDictionaryGetter(
+                    this.nodeAddress,
+                    string,
+                    this.namedKeys.hashByIndex
+                );
+                final.push(result)
+            }
+            return final;
+            // return table;
+        } catch (e) {
+            throw e;
+        }
+
+
+    }
     async pageTable(account) {
         try {
             let itemKey = CEP78.getAccountItemKey(account);
@@ -487,6 +570,28 @@ const CEP78 = class {
             ttl: ttl ? ttl : DEFAULT_TTL,
         });
     }
+    async registerOwnerForContract({ keys, contractHash, paymentAmount, ttl }) {
+        contractHash = new CLByteArray(
+            Uint8Array.from(Buffer.from(contractHash, "hex"))
+        );
+
+        const ownerKey = createRecipientAddress(contractHash)
+        let runtimeArgs = {};
+        runtimeArgs = RuntimeArgs.fromMap({
+            token_owner: ownerKey,
+            // token_meta_data: token_metadata,
+        });
+
+        console.log("before")
+        return await this.contractClient.contractCall({
+            entryPoint: "register_owner",
+            keys: keys,
+            paymentAmount: paymentAmount ? paymentAmount : "1000000000",
+            runtimeArgs,
+            cb: (deployHash) => { },
+            ttl: ttl ? ttl : DEFAULT_TTL,
+        });
+    }
     async mintOfficial({ keys, tokenOwner, metadataJson, paymentAmount, ttl }) {
         // Owner input is accountHash
         // tokenOwner = tokenOwner.startsWith("account-hash-")
@@ -523,6 +628,46 @@ const CEP78 = class {
             ttl: ttl ? ttl : DEFAULT_TTL,
         });
     }
+
+    // test approve to claim
+    async approveToClaim({ keys, tokenOwner, mintId, metadataJson, paymentAmount, ttl }) {
+        // Owner input is accountHash
+        // tokenOwner = tokenOwner.startsWith("account-hash-")
+        //     ? tokenOwner.slice(13)
+        //     : tokenOwner;
+
+
+        // let ownerAccountHashByte = Uint8Array.from(
+        //     Buffer.from(tokenOwner, 'hex'),
+        // )
+
+
+        const ownerKey = createRecipientAddress(CLPublicKey.fromHex(tokenOwner))
+        let hashesMap = ["32"]
+
+        let token_metadata = CLValueBuilder.list(metadataJson.map(id => CLValueBuilder.string(id)))
+        let hashes = CLValueBuilder.list(hashesMap.map(hash => CLValueBuilder.string(hash)))
+
+        // let token_metadata = new CLString(JSON.stringify(metadataJson))
+        let runtimeArgs = {};
+        runtimeArgs = RuntimeArgs.fromMap({
+            token_owner: ownerKey,
+            token_meta_datas: token_metadata,
+            mint_id: mintId,
+            token_hashes: hashes
+        });
+
+        console.log("before")
+        return await this.contractClient.contractCall({
+            entryPoint: "approve_to_claim",
+            keys: keys,
+            paymentAmount: paymentAmount ? paymentAmount : "22000000000",
+            runtimeArgs,
+            cb: (deployHash) => { },
+            ttl: ttl ? ttl : DEFAULT_TTL,
+        });
+    }
+
     async approveForAll(keys, operator, paymentAmount, ttl) {
         let key = createRecipientAddress(operator);
         let runtimeArgs = RuntimeArgs.fromMap({
