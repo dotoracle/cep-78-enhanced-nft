@@ -5,9 +5,23 @@ const {
 } = require("casper-js-client-helper");
 const { DEFAULT_TTL } = require("casper-js-client-helper/dist/constants");
 
-const { CLValueBuilder, RuntimeArgs, CLAccountHash, CLString, CLPublicKey, CLByteArray } = require("casper-js-sdk");
+const { CLValueBuilder, RuntimeArgs, CLAccountHash, CLString, CLPublicKey, CLKey, CLByteArray, CLValueParsers } = require("casper-js-sdk");
 
 const { setClient, contractSimpleGetter, createRecipientAddress } = helpers;
+let blake = require("blakejs")
+
+const getOperatorDictionaryKey = (caller, operator) => {
+    let callerKey = createRecipientAddress(CLPublicKey.fromHex(caller))
+    const contracthashbytearray = new CLByteArray(Uint8Array.from(Buffer.from(operator, 'hex')));
+    const operatorKey = new CLKey(contracthashbytearray);
+    let callerKeyBytes = CLValueParsers.toBytes(callerKey).val
+    let operatorKeyBytes = CLValueParsers.toBytes(operatorKey).val
+    let mix = Array.from(callerKeyBytes).concat(Array.from(operatorKeyBytes))
+    let result = blake.blake2b(Buffer.from(mix), null, 32)
+    console.log('h1', Buffer.from(result).toString('hex'))
+    return result
+}
+
 
 const CEP78 = class {
     constructor(contractHash, nodeAddress, chainName, namedKeysList = []) {
@@ -24,7 +38,7 @@ const CEP78 = class {
             "metadata_custom_validated",
             "metadata_nft721",
             "metadata_raw",
-            "operator",
+            "operators",
             "owned_tokens",
             "token_issuers",
             "page_table",
@@ -611,6 +625,8 @@ const CEP78 = class {
 
         const ownerKey = createRecipientAddress(CLPublicKey.fromHex(tokenOwner))
         let hashesMap = ["32"]
+        let a = CLValueParsers.toBytes(ownerKey)
+        console.log("a ", a)
 
         let token_metadata = CLValueBuilder.list(metadataJson.map(id => CLValueBuilder.string(id)))
         let hashes = CLValueBuilder.list(hashesMap.map(hash => CLValueBuilder.string(hash)))
@@ -713,6 +729,30 @@ const CEP78 = class {
         });
     }
 
+    async checkOperatorDictionaryKey(caller, operator) {
+        try {
+            let callerKey = createRecipientAddress(CLPublicKey.fromHex(caller))
+            const contracthashbytearray = new CLByteArray(Uint8Array.from(Buffer.from(operator, 'hex')));
+            const operatorKey = new CLKey(contracthashbytearray);
+            let callerKeyBytes = CLValueParsers.toBytes(callerKey).val
+            let operatorKeyBytes = CLValueParsers.toBytes(operatorKey).val
+            let mix = Array.from(callerKeyBytes).concat(Array.from(operatorKeyBytes))
+            let itemKeyArray = blake.blake2b(Buffer.from(mix), null, 32)
+            let itemKey = Buffer.from(itemKeyArray).toString('hex')
+            console.log("itemKey ", itemKey)
+            console.log("ope ", this.namedKeys.operators)
+            const result = await utils.contractDictionaryGetter(
+                this.nodeAddress,
+                itemKey,
+                this.namedKeys.operators
+            );
+            return result
+        } catch (e) {
+            console.log(e)
+        }
+
+
+    }
     async transfer(keys, source, recipient, tokenId, paymentAmount, ttl) {
         let identifierMode = await this.identifierMode();
         identifierMode = parseInt(identifierMode.toString());
