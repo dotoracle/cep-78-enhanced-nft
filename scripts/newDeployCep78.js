@@ -38,9 +38,9 @@ const main = async () => {
 
 
   //   --session-arg "collection_name:string=''" \
-  const collection_name = new CLString("GFT Faucet");
+  const collection_name = new CLString("AFT Faucet");
   // --session-arg "collection_symbol:string=''" \
-  const collection_symbol = new CLString("GFT");
+  const collection_symbol = new CLString("AFT");
   // --session-arg "total_token_supply:u64='10'" \
   const total_token_supply = new CLU64("10000");
   // --------------------
@@ -177,6 +177,11 @@ const main = async () => {
   let minterAccountHashByte = Uint8Array.from(
     Buffer.from("69b994ec6f871de00f099de1f7bcfca61bec1a1699d85ec50e7b883965bbc485", 'hex'), //MPCkey
   )
+
+  // let minterAccountHashByte = Uint8Array.from(
+  //   Buffer.from("55884917f4107a59e8c06557baee7fdada631af6d1c105984d196a84562854eb", 'hex'), //MPCkey
+  // )
+
 
   const csp_minter = createRecipientAddress(new CLAccountHash(minterAccountHashByte)) // MPC key 
 

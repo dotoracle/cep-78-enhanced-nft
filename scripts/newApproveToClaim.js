@@ -6,7 +6,7 @@ const CEP78 = require('./Official-cep78.js')
 let key = require('./keys.json').key
 const sha256 = require("js-sha256")
 
-const { CLValueBuilder, Keys, RuntimeArgs, CLByteArrayBytesParser, CLByteArray, CLKey, CLPublicKey, CLAccountHash } = require("casper-js-sdk");
+const { CLValueBuilder, Keys, RuntimeArgs, CLByteArrayBytesParser, CLByteArray, CLKey, CLPublicKey, CLAccountHash, CLString } = require("casper-js-sdk");
 
 const { NODE_ADDRESS, EVENT_STREAM_ADDRESS, CHAIN_NAME, WASM_PATH } =
   process.env;
@@ -50,7 +50,7 @@ async function main() {
     // "rarity": 0,
   }
 
-  // let account1 = "017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5" // account hash
+  let account1 = "017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5" // account hash
   let account2 = "020261207299a7d59261d28a0780b92f76b5caff3ee2e3f767d7cd832e269c181767" // account hash
 
   // account1 = "55884917f4107a59e8c06557baee7fdada631af6d1c105984d196a84562854eb"
@@ -72,10 +72,11 @@ async function main() {
 
 
 
-      let hasxh = await csp.claim({
+      let hasxh = await csp.approveToClaim({
         keys: KEYS,
-        // tokenOwner: account2,
-        // metadataJson: [JSON.stringify(meta_data_json)],
+        tokenOwner: account1,
+        mintId: new CLString("3-3-3"),
+        metadataJson: [JSON.stringify(meta_data_json)],
       })
 
       console.log(`... Contract installation deployHash: ${hasxh}`);

@@ -16,7 +16,7 @@ let privateKeyPem = `
 ${key}
 -----END PRIVATE KEY-----
 `; // abb key
-let contractHash = "5d1bc2c64cec7e88332eda1154503f3d5e07cabeddbf9ccc227c2220e46d4591" // wrap 721
+let contractHash = "3a100016a814263b64223357b169ac94ff84d1fd5826efaf1935543287066fc1" // wrap 721
 //let contractHash = "97ec1fdd4281b3ea73039f749fc784d80c3a7c562eba5a6a9adca223e3b5aca2"
 let toAddress = "020261207299a7d59261d28a0780b92f76b5caff3ee2e3f767d7cd832e269c181767" // publicKey
 
@@ -52,37 +52,42 @@ async function main() {
 
   // let account1 = "017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5" // account hash
   let account2 = "020261207299a7d59261d28a0780b92f76b5caff3ee2e3f767d7cd832e269c181767" // account hash
+  let bridge = "f0f91595bc63e1ce2f015dbacdd816619f63053cdf5fb41f19d69ffecbba755f"
 
   // account1 = "55884917f4107a59e8c06557baee7fdada631af6d1c105984d196a84562854eb"
   console.log("A")
 
   try {
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 2; i++) {
 
-      // let hash = await csp.registerOwner({
-      //   keys: KEYS,
-      //   tokenOwner: account2,
-      // })
+      // let hash = CLPublicKey.fromHex(account2)
+      // let accHash = hash.toAccountHashStr()
+      // console.log(accHash)
 
-      // console.log(`... Contract installation deployHash: ${hash}`);
-
-      // await getDeploy(NODE_ADDRESS, hash);
-
-      // console.log(`... Contract installed successfully.`);
-
-
-
-      let hasxh = await csp.claim({
+      let hash = await csp.registerOwnerForContract({
         keys: KEYS,
-        // tokenOwner: account2,
-        // metadataJson: [JSON.stringify(meta_data_json)],
+        contractHash: bridge,
       })
 
-      console.log(`... Contract installation deployHash: ${hasxh}`);
+      console.log(`... Contract installation deployHash: ${hash}`);
 
-      await getDeploy(NODE_ADDRESS, hasxh);
+      await getDeploy(NODE_ADDRESS, hash);
 
       console.log(`... Contract installed successfully.`);
+
+
+
+      // let hasxh = await csp.mintOfficial({
+      //   keys: KEYS,
+      //   tokenOwner: account2,
+      //   metadataJson: [JSON.stringify(meta_data_json)],
+      // })
+
+      // console.log(`... Contract installation deployHash: ${hasxh}`);
+
+      // await getDeploy(NODE_ADDRESS, hasxh);
+
+      // console.log(`... Contract installed successfully.`);
     }
     //   let hash2 = await csp.mintOfficial({
     //     keys: KEYS,

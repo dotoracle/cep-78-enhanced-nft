@@ -4,5 +4,8 @@ wasm
 .vscode/
 .DS_Store
 node_modules
+keys.json
+*.pem
+
 
 

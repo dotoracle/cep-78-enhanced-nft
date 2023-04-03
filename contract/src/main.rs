@@ -598,19 +598,15 @@ pub extern "C" fn approve_to_claim() {
     let user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key);
 
-    if user_mint_ids_current.is_some() {
-        let mut unwrap = user_mint_ids_current.unwrap();
-        unwrap.push(add_approve);
-        utils::upsert_dictionary_value_from_key(USER_MINT_ID_LIST, &user_item_key, unwrap);
+    let mut user_mint_ids_new = if user_mint_ids_current.is_some() {
+        user_mint_ids_current.unwrap()
     } else {
-        let mut user_mint_ids_new = Vec::<ApproveMint>::new();
-        user_mint_ids_new.push(add_approve);
-        utils::upsert_dictionary_value_from_key(
-            USER_MINT_ID_LIST,
-            &user_item_key,
-            user_mint_ids_new,
-        );
-    }
+        Vec::<ApproveMint>::new()
+    };
+
+    // let mut user_mint_ids_new = Vec::<ApproveMint>::new();
+    user_mint_ids_new.push(add_approve);
+    utils::upsert_dictionary_value_from_key(USER_MINT_ID_LIST, &user_item_key, user_mint_ids_new);
 }
 
 #[no_mangle]
@@ -634,16 +630,16 @@ pub extern "C" fn claim() {
     if minted_tokens_count >= total_token_supply {
         runtime::revert(NFTCoreError::TokenSupplyDepleted);
     }
-    let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
-        utils::get_stored_value_with_user_errors(
-            NFT_METADATA_KINDS,
-            NFTCoreError::MissingNFTMetadataKind,
-            NFTCoreError::InvalidNFTMetadataKind,
-        );
+    // let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
+    //     utils::get_stored_value_with_user_errors(
+    //         NFT_METADATA_KINDS,
+    //         NFTCoreError::MissingNFTMetadataKind,
+    //         NFTCoreError::InvalidNFTMetadataKind,
+    //     );
 
     let user_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
-    let mut user_mint_ids_current =
+    let user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key)
             .unwrap_or_revert();
 
@@ -657,13 +653,13 @@ pub extern "C" fn claim() {
             let token_metadata = metadatas[i].clone();
 
             // Insert Token metadata Dictionary
-            for (metadata_kind, required) in metadata_kinds.clone() {
-                utils::upsert_dictionary_value_from_key(
-                    &metadata::get_metadata_dictionary_name(&metadata_kind),
-                    &token_identifier.to_string(),
-                    token_metadata.clone(),
-                );
-            }
+            // for (metadata_kind, required) in metadata_kinds.clone() {
+            utils::upsert_dictionary_value_from_key(
+                &metadata::get_metadata_dictionary_name(&NFTMetadataKind::CEP78),
+                &token_identifier.to_string(),
+                token_metadata.clone(),
+            );
+            // }
             // Origin part
             utils::upsert_dictionary_value_from_key(
                 TOKEN_OWNERS,
@@ -744,7 +740,7 @@ pub extern "C" fn claim() {
             let receipt =
                 CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
                     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-            runtime::ret(receipt)
+            // runtime::ret(receipt)
         }
     }
 

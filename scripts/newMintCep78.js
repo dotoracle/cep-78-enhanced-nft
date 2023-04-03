@@ -1,6 +1,6 @@
 require("dotenv").config();
 const { CasperContractClient, helpers } = require("casper-js-client-helper");
-const { getDeploy } = require("./indexC");
+const { getDeploy, getOperatorDictionaryKey } = require("./indexC");
 const { createRecipientAddress } = helpers;
 const CEP78 = require('./Official-cep78.js')
 let key = require('./keys.json').key
@@ -16,7 +16,7 @@ let privateKeyPem = `
 ${key}
 -----END PRIVATE KEY-----
 `; // abb key
-let contractHash = "88d1d56835a8fec64f90a2a5f3de074aae31b08c05c7f6285504ad3f8c4186e4" // wrap 721
+let contractHash = "d49e66ce64763fa1a4282b3022c92135ce0161ef50cf63c3f6c66ef1288e7015" // wrap 721
 //let contractHash = "97ec1fdd4281b3ea73039f749fc784d80c3a7c562eba5a6a9adca223e3b5aca2"
 let toAddress = "020261207299a7d59261d28a0780b92f76b5caff3ee2e3f767d7cd832e269c181767" // publicKey
 
@@ -50,7 +50,7 @@ async function main() {
     // "rarity": 0,
   }
 
-  // let account1 = "017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5" // account hash
+  let account1 = "017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5" // account hash
   let account2 = "020261207299a7d59261d28a0780b92f76b5caff3ee2e3f767d7cd832e269c181767" // account hash
 
   // account1 = "55884917f4107a59e8c06557baee7fdada631af6d1c105984d196a84562854eb"
@@ -70,11 +70,14 @@ async function main() {
 
       // console.log(`... Contract installed successfully.`);
 
+      // let getOp = await csp.checkOperatorDictionaryKey("0202f92c9b79232db38584ad558cf5becf5bfd23987e4e1d36d49166289ed8208f5f", "f0f91595bc63e1ce2f015dbacdd816619f63053cdf5fb41f19d69ffecbba755f")
+      // console.log("getOp ", getOp)
+
 
 
       let hasxh = await csp.mintOfficial({
         keys: KEYS,
-        tokenOwner: account2,
+        tokenOwner: account1,
         metadataJson: [JSON.stringify(meta_data_json)],
       })
 

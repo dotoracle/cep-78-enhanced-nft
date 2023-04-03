@@ -56,12 +56,15 @@ async function main() {
 
   try {
 
-    let bal = await csp.balanceOf(CLPublicKey.fromHex("017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5"))
+    let bal = await csp.balanceOf(CLPublicKey.fromHex("0202f92c9b79232db38584ad558cf5becf5bfd23987e4e1d36d49166289ed8208f5f"))
     // console.log("token owned", metadata.map((e) => parseInt(e)));
     console.log("bal: ", parseInt(bal))
 
-    let allTokens = await csp.getOwnedTokenIds(CLPublicKey.fromHex("017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5"))
+    let allTokens = await csp.getOwnedTokenIdsHash(CLPublicKey.fromHex("0202f92c9b79232db38584ad558cf5becf5bfd23987e4e1d36d49166289ed8208f5f"))
     console.log(allTokens)
+
+    // let list = await csp.userMintIdList(CLPublicKey.fromHex("017e80955a6d493a4a4b9f1b5dd23d2edcdc2c8b00fcd9689f2f735f501bd088c5"))
+    // console.log(list.toString())
 
 
   } catch (e) {

@@ -2,8 +2,22 @@ const {
     CasperClient,
     CLPublicKey,
     Keys,
+    CLKey,
+    CLValueParsers,
+    CLByteArray,
     CasperServiceByJsonRPC,
 } = require("casper-js-sdk");
+const blake = require("blakejs")
+
+const {
+    utils,
+    helpers,
+    CasperContractClient,
+} = require("casper-js-client-helper");
+
+
+const { setClient, contractSimpleGetter, createRecipientAddress } = helpers;
+
 
 const Utils = {
     parseTokenMeta: (str) =>
@@ -80,5 +94,18 @@ const Utils = {
         }
         return undefined;
     },
+    getOperatorDictionaryKey: (caller, operator) => {
+        let callerKey = createRecipientAddress(CLPublicKey.fromHex(caller))
+        const contracthashbytearray = new CLByteArray(Uint8Array.from(Buffer.from(operator, 'hex')));
+        const operatorKey = new CLKey(contracthashbytearray);
+        let callerKeyBytes = CLValueParsers.toBytes(callerKey).val
+        let operatorKeyBytes = CLValueParsers.toBytes(operatorKey).val
+        let mix = Array.from(callerKeyBytes).concat(Array.from(operatorKeyBytes))
+        let result = blake.blake2b(Buffer.from(mix), null, 32)
+        console.log('h1', Buffer.from(result).toString('hex'))
+        return result
+    }
+
+
 };
 module.exports = Utils;

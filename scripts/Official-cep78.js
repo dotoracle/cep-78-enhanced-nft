@@ -563,7 +563,7 @@ const CEP78 = class {
         return await this.contractClient.contractCall({
             entryPoint: "claim",
             keys: keys,
-            paymentAmount: paymentAmount ? paymentAmount : "20000000000",
+            paymentAmount: paymentAmount ? paymentAmount : "30000000000",
             runtimeArgs,
             cb: (deployHash) => { },
             ttl: ttl ? ttl : DEFAULT_TTL,
@@ -611,7 +611,7 @@ const CEP78 = class {
             ttl: ttl ? ttl : DEFAULT_TTL,
         });
     }
-    async mintOfficial({ keys, tokenOwner, metadataJson, paymentAmount, ttl }) {
+    async mintOfficial({ keys, tokenOwner, mintId, metadataJson, paymentAmount, ttl }) {
         // Owner input is accountHash
         // tokenOwner = tokenOwner.startsWith("account-hash-")
         //     ? tokenOwner.slice(13)
@@ -636,7 +636,8 @@ const CEP78 = class {
         runtimeArgs = RuntimeArgs.fromMap({
             token_owner: ownerKey,
             token_meta_datas: token_metadata,
-            token_hashes: hashes
+            token_hashes: hashes,
+            // mint_id: CLValueBuilder.string(mintId)
         });
 
         console.log("before")
@@ -664,7 +665,7 @@ const CEP78 = class {
 
 
         const ownerKey = createRecipientAddress(CLPublicKey.fromHex(tokenOwner))
-        let hashesMap = ["32"]
+        let hashesMap = ["64"]
 
         let token_metadata = CLValueBuilder.list(metadataJson.map(id => CLValueBuilder.string(id)))
         let hashes = CLValueBuilder.list(hashesMap.map(hash => CLValueBuilder.string(hash)))
