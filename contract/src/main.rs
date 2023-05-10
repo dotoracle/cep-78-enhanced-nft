@@ -672,7 +672,6 @@ pub extern "C" fn claim() {
                 NFTCoreError::InvalidContractOwner,
             );
 
-            // Event MPC mint the NFT but set TOKEN_ISSUERS to the bridge's user
             utils::upsert_dictionary_value_from_key(
                 TOKEN_ISSUERS,
                 &token_identifier.to_string(),

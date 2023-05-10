@@ -418,24 +418,24 @@ pub fn insert_hash_id_lookups(
         NFTCoreError::MissingIndexByHash,
         NFTCoreError::InvalidIndexByHash,
     );
-    if storage::dictionary_get::<u64>(
-        index_by_hash_uref,
-        &token_identifier.get_dictionary_item_key(),
-    )
-    .unwrap_or_revert()
-    .is_some()
-    {
-        runtime::revert(NFTCoreError::InvalidNFTMetadataKind)
-    }
-    if storage::dictionary_get::<String>(
-        hash_by_index_uref,
-        &current_number_of_minted_tokens.to_string(),
-    )
-    .unwrap_or_revert()
-    .is_some()
-    {
-        runtime::revert(NFTCoreError::MissingNftKind)
-    }
+    // if storage::dictionary_get::<u64>(
+    //     index_by_hash_uref,
+    //     &token_identifier.get_dictionary_item_key(),
+    // )
+    // .unwrap_or_revert()
+    // .is_some()
+    // {
+    //     runtime::revert(NFTCoreError::InvalidNFTMetadataKind)
+    // }
+    // if storage::dictionary_get::<String>(
+    //     hash_by_index_uref,
+    //     &current_number_of_minted_tokens.to_string(),
+    // )
+    // .unwrap_or_revert()
+    // .is_some()
+    // {
+    //     runtime::revert(NFTCoreError::MissingNftKind)
+    // }
     storage::dictionary_put(
         hash_by_index_uref,
         &current_number_of_minted_tokens.to_string(),
