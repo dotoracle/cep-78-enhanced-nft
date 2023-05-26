@@ -491,21 +491,7 @@ pub extern "C" fn set_variables() {
 // Mints a new token. Minting will fail if allow_minting is set to false.
 #[no_mangle]
 pub extern "C" fn approve_to_claim() {
-    // The contract owner can toggle the minting behavior on and off over time.
-    // The contract is toggled on by default.
-    let minting_status = utils::get_stored_value_with_user_errors::<bool>(
-        ALLOW_MINTING,
-        NFTCoreError::MissingAllowMinting,
-        NFTCoreError::InvalidAllowMinting,
-    );
-
-    // If contract minting behavior is currently toggled off we revert.
-    if !minting_status {
-        runtime::revert(NFTCoreError::MintingIsPaused);
-    }
-
     // // DTO adding
-
     let dto_mint_id = utils::get_named_arg_with_user_errors::<String>(
         ARG_MINT_ID,
         NFTCoreError::MissingDtoMintID,
@@ -621,7 +607,7 @@ pub extern "C" fn claim() {
     );
 
     // The minted_tokens_count is the number of minted tokens so far.
-    let minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
+    let mut minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingNumberOfMintedTokens,
         NFTCoreError::InvalidNumberOfMintedTokens,
@@ -630,12 +616,6 @@ pub extern "C" fn claim() {
     if minted_tokens_count >= total_token_supply {
         runtime::revert(NFTCoreError::TokenSupplyDepleted);
     }
-    // let metadata_kinds: BTreeMap<NFTMetadataKind, Requirement> =
-    //     utils::get_stored_value_with_user_errors(
-    //         NFT_METADATA_KINDS,
-    //         NFTCoreError::MissingNFTMetadataKind,
-    //         NFTCoreError::InvalidNFTMetadataKind,
-    //     );
 
     let user_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
@@ -708,13 +688,7 @@ pub extern "C" fn claim() {
                 &owned_tokens_item_key,
                 updated_token_count,
             );
-            // Increment number_of_minted_tokens by one
-            let number_of_minted_tokens_uref = utils::get_uref(
-                NUMBER_OF_MINTED_TOKENS,
-                NFTCoreError::MissingTotalTokenSupply,
-                NFTCoreError::InvalidTotalTokenSupply,
-            );
-            storage::write(number_of_minted_tokens_uref, minted_tokens_count + 1u64);
+            
             // Emit Mint event.
             casper_event_standard::emit(Mint::new(
                 token_owner_key,
@@ -731,6 +705,7 @@ pub extern "C" fn claim() {
                 &owned_tokens_item_key,
                 true,
             );
+            minted_tokens_count = minted_tokens_count + 1;
             let receipt_string = utils::get_receipt_name(page_table_entry);
             let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
             let token_identifier_string =
@@ -742,6 +717,14 @@ pub extern "C" fn claim() {
             // runtime::ret(receipt)
         }
     }
+
+    // Increment number_of_minted_tokens by one
+    let number_of_minted_tokens_uref = utils::get_uref(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply,
+    );
+    storage::write(number_of_minted_tokens_uref, minted_tokens_count);
 
     utils::upsert_dictionary_value_from_key(
         USER_MINT_ID_LIST,
