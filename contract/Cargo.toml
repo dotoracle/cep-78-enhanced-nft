@@ -14,6 +14,7 @@ serde-json-wasm = { version = "0.5.0", default-features = false }
 base16 = { version = "0.2.1", default-features = false }
 casper-event-standard = { version = "0.2.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
+casper_types_derive = "0.1.0"
 
 [[bin]]
 name = "contract"

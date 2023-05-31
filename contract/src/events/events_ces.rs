@@ -6,6 +6,19 @@ use casper_types::Key;
 use crate::modalities::TokenIdentifier;
 
 #[derive(Event, Debug, PartialEq, Eq)]
+pub struct ApproveMintEvent {
+    mint_id: String
+}
+
+impl ApproveMintEvent {
+    pub fn new(mint_id: String) -> Self {
+        Self {
+            mint_id
+        }
+    }
+}
+
+#[derive(Event, Debug, PartialEq, Eq)]
 pub struct Mint {
     recipient: Key,
     token_id: String,

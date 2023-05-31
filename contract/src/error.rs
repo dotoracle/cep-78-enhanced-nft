@@ -170,10 +170,6 @@ pub enum NFTCoreError {
     InvalidRequestIndex = 209,
     RequestIdIlledFormat = 210,
     RequestIdRepeated = 211,
-    
-
-
-
 }
 
 impl From<NFTCoreError> for ApiError {

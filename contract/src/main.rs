@@ -23,18 +23,16 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use approve_mint::ApproveMint;
+use approve_mint::{ApproveMint, RequestBridgeBackData};
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::{TryFrom, TryInto};
 use modalities::Requirement;
 
 use casper_types::{
-    bytesrepr,
-    bytesrepr::{FromBytes, ToBytes},
     contracts::NamedKeys,
-    runtime_args, CLType, CLTyped, CLValue, ContractHash, ContractPackageHash, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Key, KeyTag, Parameter, RuntimeArgs, Tagged,
-    U256,
+    runtime_args, CLType, CLValue, ContractHash, ContractPackageHash, EntryPoint,
+    EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs,
+    U256, URef, bytesrepr::ToBytes
 };
 
 use casper_contract::{
@@ -44,7 +42,6 @@ use casper_contract::{
     },
     unwrap_or_revert::UnwrapOrRevert,
 };
-use serde::{Deserialize, Serialize};
 
 use constants::*;
 
@@ -580,6 +577,7 @@ pub extern "C" fn approve_to_claim() {
     let add_approve: ApproveMint = ApproveMint {
         token_ids: token_identifiers_string,
         token_metadatas: metadatas,
+        mint_id: dto_mint_id.clone()
     };
     let user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key);
@@ -590,14 +588,24 @@ pub extern "C" fn approve_to_claim() {
         Vec::<ApproveMint>::new()
     };
 
-    // let mut user_mint_ids_new = Vec::<ApproveMint>::new();
     user_mint_ids_new.push(add_approve);
     utils::upsert_dictionary_value_from_key(USER_MINT_ID_LIST, &user_item_key, user_mint_ids_new);
+
+    // emitting event
+    let mut event = BTreeMap::new();
+    event.insert("contract_package_hash", get_contract_package_hash());
+    event.insert("event_type", "approve_to_claim".to_string());
+    event.insert("mint_id", dto_mint_id);
+    let _: URef = storage::new_uref(event);
 }
 
 #[no_mangle]
 pub extern "C" fn claim() {
-    let token_owner_key: Key = utils::get_verified_caller().unwrap_or_revert();
+    let token_owner_key: Key = runtime::get_named_arg("user");
+    let mut mint_ids_count = match utils::get_named_arg_with_user_errors::<u64>("mint_ids_count", NFTCoreError::MissingDtoMintID, NFTCoreError::InvalidDtoMintID) {
+        Ok(val) => val,
+        Err(_) => 0
+    };
     // register_owner first
     register_owner_internal(token_owner_key.clone());
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
@@ -619,13 +627,21 @@ pub extern "C" fn claim() {
 
     let user_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
-    let user_mint_ids_current =
+    let mut user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key)
             .unwrap_or_revert();
 
-    for approve_mint in &user_mint_ids_current {
+    mint_ids_count = if mint_ids_count == 0 || mint_ids_count > user_mint_ids_current.len() as u64 {
+        user_mint_ids_current.len() as u64
+    } else {
+        mint_ids_count
+    };
+    let mut mint_ids: Vec<String> = vec![];
+    while mint_ids_count > 0 {
+        let approve_mint = user_mint_ids_current.remove(user_mint_ids_current.len() - 1);
         let token_identifiers = approve_mint.token_ids.clone();
         let metadatas = approve_mint.token_metadatas.clone();
+        mint_ids.push(approve_mint.mint_id);
         // Start for loop to mint (to the end)
 
         for i in 0..token_identifiers.len() {
@@ -711,11 +727,13 @@ pub extern "C" fn claim() {
             let token_identifier_string =
                 TokenIdentifier::new_hash(token_identifier).get_dictionary_item_key();
 
-            let receipt =
+            let _receipt =
                 CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
                     .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
             // runtime::ret(receipt)
         }
+
+        mint_ids_count = mint_ids_count - 1;
     }
 
     // Increment number_of_minted_tokens by one
@@ -726,10 +744,17 @@ pub extern "C" fn claim() {
     );
     storage::write(number_of_minted_tokens_uref, minted_tokens_count);
 
+    // emitting event
+    let mut event = BTreeMap::new();
+    event.insert("contract_package_hash", get_contract_package_hash());
+    event.insert("event_type", "claim".to_string());
+    event.insert("mint_ids", hex::encode(mint_ids.to_bytes().unwrap()));
+    let _: URef = storage::new_uref(event);
+
     utils::upsert_dictionary_value_from_key(
         USER_MINT_ID_LIST,
         &user_item_key,
-        Vec::<ApproveMint>::new(),
+        user_mint_ids_current,
     );
 }
 
@@ -1912,7 +1937,10 @@ fn generate_entry_points() -> EntryPoints {
     // Claim function
     let claim = EntryPoint::new(
         "claim",
-        vec![],
+        vec![
+            Parameter::new("user", CLType::Key),
+            Parameter::new("mint_ids_count", CLType::U64)
+        ],
         CLType::Unit,
         EntryPointAccess::Public,
         EntryPointType::Contract,
@@ -2484,15 +2512,25 @@ fn migrate_contract(access_key_name: String, package_key_name: String) {
     runtime::call_contract::<()>(contract_hash, ENTRY_POINT_MIGRATE, runtime_args);
 }
 
+pub fn get_contract_package_hash() -> String {
+    let collection_name: String = utils::get_stored_value_with_user_errors(
+        crate::constants::COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName,
+    );
+
+    let package = utils::get_stored_value_with_user_errors::<String>(
+        &format!("{PREFIX_CEP78}_{collection_name}"),
+        NFTCoreError::MissingCep78PackageHash,
+        NFTCoreError::InvalidCep78InvalidHash,
+    );
+    package
+}
+
 #[no_mangle]
 pub extern "C" fn request_bridge_back() {
-    let identifier_mode: NFTIdentifierMode = utils::get_stored_value_with_user_errors::<u8>(
-        IDENTIFIER_MODE,
-        NFTCoreError::MissingIdentifierMode,
-        NFTCoreError::InvalidIdentifierMode,
-    )
-    .try_into()
-    .unwrap_or_revert();
+    // wrapped nft always have ordinal mode
+    let identifier_mode = NFTIdentifierMode::Ordinal;
 
     let token_identifiers = utils::get_token_identifiers_from_runtime_args(&identifier_mode);
     let caller: Key = utils::get_verified_caller().unwrap_or_revert();
@@ -2501,7 +2539,7 @@ pub extern "C" fn request_bridge_back() {
         runtime::revert(NFTCoreError::TooManyTokenIds);
     }
 
-    for token_identifier in token_identifiers {
+    for token_identifier in &token_identifiers {
         _burn(token_identifier.clone(), caller.clone(), false);
     }
 
@@ -2512,24 +2550,16 @@ pub extern "C" fn request_bridge_back() {
     );
     let next_index = current_index.checked_add(U256::one()).unwrap();
 
-    let request_id: String = runtime::get_named_arg(ARG_REQUEST_ID);
-    if request_id.chars().count() != 64 {
-        runtime::revert(NFTCoreError::RequestIdIlledFormat);
-    }
-    let decoded = hex::decode(&request_id);
-    if decoded.is_err() {
-        runtime::revert(NFTCoreError::RequestIdIlledFormat);
-    }
-    if request_id.len() != 64 || decoded.unwrap().len() != 32 {
-        runtime::revert(NFTCoreError::RequestIdIlledFormat);
-    }
+    utils::upsert_dictionary_value_from_key(DTO_REQUEST_IDS, &next_index.to_string(), RequestBridgeBackData {
+        token_ids: token_identifiers.iter().map(|x| x.to_string()).collect()
+    });
+    // emitting event
+    let mut event = BTreeMap::new();
+    event.insert("contract_package_hash", get_contract_package_hash());
+    event.insert("event_type", "request_bridge_back".to_string());
+    event.insert("request_index", next_index.to_string());
+    let _: URef = storage::new_uref(event);
 
-    let request_id_key = utils::get_request_id_dict_key(&request_id);
-    let exist = utils::get_dictionary_value_from_key::<U256>(DTO_REQUEST_IDS, &request_id_key);
-    if exist.is_some() {
-        runtime::revert(NFTCoreError::RequestIdRepeated);
-    }
-    utils::upsert_dictionary_value_from_key(DTO_REQUEST_IDS, &request_id_key, next_index);
     let request_index_uref = utils::get_uref(
         DTO_REQUEST_INDEX,
         NFTCoreError::MissingRequestIndex,

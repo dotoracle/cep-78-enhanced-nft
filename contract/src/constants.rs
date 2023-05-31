@@ -130,5 +130,3 @@ pub const DTO_REQUEST_INDEX: &str = "request_index";
 pub const DTO_REQUEST_IDS: &str = "request_ids";
 pub const ARG_REQUEST_ID: &str = "request_id";
 pub const USER_MINT_ID_LIST: &str = "user_mint_id_list";
-pub const TOKEN_IDS_OF_MINT_ID: &str = "token_ids_of_mint_id";
-pub const TOKEN_METADATAS_OF_MINT_ID: &str = "token_metadatas_of_mint_id";

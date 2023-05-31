@@ -832,13 +832,13 @@ pub(crate) fn set_key<T: ToBytes + CLTyped>(name: &str, value: T) {
     }
 }
 
-pub(crate) fn get_mint_id_dict_key(mintid: &String) -> String {
+pub fn get_mint_id_dict_key(mintid: &String) -> String {
     let mint_id_bytes = mintid.as_bytes();
     let key_bytes = runtime::blake2b(mint_id_bytes);
     hex::encode(&key_bytes)
 }
 
-pub(crate) fn get_token_identifiers_from_runtime_args(
+pub fn get_token_identifiers_from_runtime_args(
     identifier_mode: &NFTIdentifierMode,
 ) -> Vec<TokenIdentifier> {
     match identifier_mode {
@@ -863,16 +863,5 @@ pub(crate) fn get_token_identifiers_from_runtime_args(
     }
 }
 
-pub(crate) fn get_request_id_dict_key(request_id: &String) -> String {
-    request_id.clone()
-}
 
-// pub(crate) fn get_immediate_caller_key() -> Key {
-//     let addr = get_immediate_caller_address().unwrap_or_revert();
-//     get_key_from_address(&addr)
-// }
-// pub(crate) fn get_immediate_caller_address() -> Result<Address, Error> {
-//     get_immediate_call_stack_item()
-//         .map(call_stack_element_to_address)
-//         .ok_or(Error::InvalidContext)
-// }
+
