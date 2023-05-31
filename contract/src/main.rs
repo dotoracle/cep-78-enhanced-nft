@@ -24,16 +24,14 @@ use alloc::{
     vec::Vec,
 };
 use approve_mint::{ApproveMint, RequestBridgeBackData};
+use casper_types::{
+    bytesrepr::ToBytes, contracts::NamedKeys, runtime_args, CLType, CLValue, ContractHash,
+    ContractPackageHash, EntryPoint, EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter,
+    RuntimeArgs, URef, U256,
+};
 use constants::{ARG_ADDITIONAL_REQUIRED_METADATA, ARG_OPTIONAL_METADATA, NFT_METADATA_KINDS};
 use core::convert::{TryFrom, TryInto};
 use modalities::Requirement;
-
-use casper_types::{
-    contracts::NamedKeys,
-    runtime_args, CLType, CLValue, ContractHash, ContractPackageHash, EntryPoint,
-    EntryPointAccess, EntryPointType, EntryPoints, Key, Parameter, RuntimeArgs,
-    U256, URef, bytesrepr::ToBytes
-};
 
 use casper_contract::{
     contract_api::{
@@ -577,7 +575,7 @@ pub extern "C" fn approve_to_claim() {
     let add_approve: ApproveMint = ApproveMint {
         token_ids: token_identifiers_string,
         token_metadatas: metadatas,
-        mint_id: dto_mint_id.clone()
+        mint_id: dto_mint_id.clone(),
     };
     let user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key);
@@ -602,10 +600,7 @@ pub extern "C" fn approve_to_claim() {
 #[no_mangle]
 pub extern "C" fn claim() {
     let token_owner_key: Key = runtime::get_named_arg("user");
-    let mut mint_ids_count = match utils::get_named_arg_with_user_errors::<u64>("mint_ids_count", NFTCoreError::MissingDtoMintID, NFTCoreError::InvalidDtoMintID) {
-        Ok(val) => val,
-        Err(_) => 0
-    };
+
     // register_owner first
     register_owner_internal(token_owner_key.clone());
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
@@ -630,110 +625,77 @@ pub extern "C" fn claim() {
     let mut user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key)
             .unwrap_or_revert();
-
-    mint_ids_count = if mint_ids_count == 0 || mint_ids_count > user_mint_ids_current.len() as u64 {
-        user_mint_ids_current.len() as u64
-    } else {
-        mint_ids_count
-    };
     let mut mint_ids: Vec<String> = vec![];
-    while mint_ids_count > 0 {
-        let approve_mint = user_mint_ids_current.remove(user_mint_ids_current.len() - 1);
-        let token_identifiers = approve_mint.token_ids.clone();
-        let metadatas = approve_mint.token_metadatas.clone();
-        mint_ids.push(approve_mint.mint_id);
-        // Start for loop to mint (to the end)
+    let approve_mint = user_mint_ids_current.remove(user_mint_ids_current.len() - 1);
+    let token_identifiers = approve_mint.token_ids.clone();
+    let metadatas = approve_mint.token_metadatas.clone();
+    mint_ids.push(approve_mint.mint_id);
+    // Start for loop to mint (to the end)
 
-        for i in 0..token_identifiers.len() {
-            let token_identifier = token_identifiers[i].clone();
-            let token_metadata = metadatas[i].clone();
+    for i in 0..token_identifiers.len() {
+        let token_identifier = token_identifiers[i].clone();
+        let token_identifier = TokenIdentifier::Index(token_identifier.parse::<u64>().unwrap());
+        let token_metadata = metadatas[i].clone();
 
-            // Insert Token metadata Dictionary
-            // for (metadata_kind, required) in metadata_kinds.clone() {
-            utils::upsert_dictionary_value_from_key(
-                &metadata::get_metadata_dictionary_name(&NFTMetadataKind::CEP78),
-                &token_identifier.to_string(),
-                token_metadata.clone(),
-            );
-            // }
-            // Origin part
-            utils::upsert_dictionary_value_from_key(
-                TOKEN_OWNERS,
-                &token_identifier.to_string(),
-                token_owner_key,
-            );
-            let current_contract_owner: Key = utils::get_stored_value_with_user_errors(
-                CONTRACT_OWNER,
-                NFTCoreError::MissingContractOwner,
-                NFTCoreError::InvalidContractOwner,
-            );
+        // Insert Token metadata Dictionary
+        // for (metadata_kind, required) in metadata_kinds.clone() {
+        utils::upsert_dictionary_value_from_key(
+            &metadata::get_metadata_dictionary_name(&NFTMetadataKind::CEP78),
+            &token_identifier.get_dictionary_item_key(),
+            token_metadata.clone(),
+        );
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_OWNERS,
+            &token_identifier.get_dictionary_item_key(),
+            token_owner_key,
+        );
+        let current_contract_owner: Key = utils::get_stored_value_with_user_errors(
+            CONTRACT_OWNER,
+            NFTCoreError::MissingContractOwner,
+            NFTCoreError::InvalidContractOwner,
+        );
 
-            utils::upsert_dictionary_value_from_key(
-                TOKEN_ISSUERS,
-                &token_identifier.to_string(),
-                current_contract_owner,
-            );
-            let identifier_mode: NFTIdentifierMode =
-                utils::get_stored_value_with_user_errors::<u8>(
-                    IDENTIFIER_MODE,
-                    NFTCoreError::MissingIdentifierMode,
-                    NFTCoreError::InvalidIdentifierMode,
-                )
-                .try_into()
-                .unwrap_or_revert();
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_ISSUERS,
+            &token_identifier.get_dictionary_item_key(),
+            current_contract_owner,
+        );
 
-            let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner_key);
-            if let NFTIdentifierMode::Hash = identifier_mode {
-                // Update the forward and reverse trackers
-                utils::insert_hash_id_lookups(
-                    minted_tokens_count,
-                    TokenIdentifier::new_hash(token_identifier.to_string()),
-                );
-            }
+        let owned_tokens_item_key = utils::encode_dictionary_item_key(token_owner_key);
 
-            //Increment the count of owned tokens.
-            let updated_token_count = match utils::get_dictionary_value_from_key::<u64>(
-                TOKEN_COUNT,
-                &owned_tokens_item_key,
-            ) {
-                Some(balance) => balance + 1u64,
-                None => 1u64,
-            };
-            utils::upsert_dictionary_value_from_key(
-                TOKEN_COUNT,
-                &owned_tokens_item_key,
-                updated_token_count,
-            );
-            
-            // Emit Mint event.
-            casper_event_standard::emit(Mint::new(
-                token_owner_key,
-                TokenIdentifier::new_hash(token_identifier.clone()),
-                token_metadata,
-            ));
-            if (NFTIdentifierMode::Hash == identifier_mode)
-                && utils::should_migrate_token_hashes(token_owner_key)
-            {
-                utils::migrate_token_hashes(token_owner_key)
-            }
-            let (page_table_entry, page_uref) = utils::add_page_entry_and_page_record(
-                minted_tokens_count,
-                &owned_tokens_item_key,
-                true,
-            );
-            minted_tokens_count = minted_tokens_count + 1;
-            let receipt_string = utils::get_receipt_name(page_table_entry);
-            let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
-            let token_identifier_string =
-                TokenIdentifier::new_hash(token_identifier).get_dictionary_item_key();
+        //Increment the count of owned tokens.
+        let updated_token_count = match utils::get_dictionary_value_from_key::<u64>(
+            TOKEN_COUNT,
+            &owned_tokens_item_key,
+        ) {
+            Some(balance) => balance + 1u64,
+            None => 1u64,
+        };
+        utils::upsert_dictionary_value_from_key(
+            TOKEN_COUNT,
+            &owned_tokens_item_key,
+            updated_token_count,
+        );
 
-            let _receipt =
-                CLValue::from_t((receipt_string, receipt_address, token_identifier_string))
-                    .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
-            // runtime::ret(receipt)
-        }
+        // Emit Mint event.
+        casper_event_standard::emit(Mint::new(
+            token_owner_key,
+            token_identifier.clone(),
+            token_metadata,
+        ));
 
-        mint_ids_count = mint_ids_count - 1;
+        let (page_table_entry, page_uref) = utils::add_page_entry_and_page_record(
+            token_identifier.get_index().unwrap(),
+            &owned_tokens_item_key,
+            true,
+        );
+        minted_tokens_count = minted_tokens_count + 1;
+        let receipt_string = utils::get_receipt_name(page_table_entry);
+        let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
+
+        let _receipt = CLValue::from_t((receipt_string, receipt_address, token_identifier))
+            .unwrap_or_revert_with(NFTCoreError::FailedToConvertToCLValue);
+        // runtime::ret(receipt)
     }
 
     // Increment number_of_minted_tokens by one
@@ -1939,7 +1901,7 @@ fn generate_entry_points() -> EntryPoints {
         "claim",
         vec![
             Parameter::new("user", CLType::Key),
-            Parameter::new("mint_ids_count", CLType::U64)
+            Parameter::new("mint_ids_count", CLType::U64),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -2011,7 +1973,6 @@ fn generate_entry_points() -> EntryPoints {
             Parameter::new(ARG_TO_CHAINID, CLType::U256),
             Parameter::new(ARG_IDENTIFIER_MODE, CLType::U8),
             Parameter::new(ARG_RECEIVER_ADDRESS, CLType::String),
-            Parameter::new(ARG_REQUEST_ID, CLType::String),
         ],
         CLType::Unit,
         EntryPointAccess::Public,
@@ -2549,10 +2510,19 @@ pub extern "C" fn request_bridge_back() {
         NFTCoreError::InvalidRequestIndex,
     );
     let next_index = current_index.checked_add(U256::one()).unwrap();
+    let to_chainid: U256 = runtime::get_named_arg("to_chainid");
+    let to: String = runtime::get_named_arg("receiver_address");
 
-    utils::upsert_dictionary_value_from_key(DTO_REQUEST_IDS, &next_index.to_string(), RequestBridgeBackData {
-        token_ids: token_identifiers.iter().map(|x| x.to_string()).collect()
-    });
+    utils::upsert_dictionary_value_from_key(
+        DTO_REQUEST_IDS,
+        &next_index.to_string(),
+        RequestBridgeBackData {
+            token_ids: token_identifiers.iter().map(|x| x.to_string()).collect(),
+            to_chainid,
+            from: caller,
+            to: to
+        },
+    );
     // emitting event
     let mut event = BTreeMap::new();
     event.insert("contract_package_hash", get_contract_package_hash());

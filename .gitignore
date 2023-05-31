@@ -6,6 +6,7 @@ wasm
 node_modules
 keys.json
 *.pem
+.env
 
 
 

@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
 use serde::{Deserialize, Serialize};
+use casper_types::{ U256, Key };
 use casper_types_derive::{CLTyped, FromBytes, ToBytes};
 #[derive(Serialize, Deserialize, Clone, CLTyped, ToBytes, FromBytes)]
 pub(crate) struct ApproveMint {
@@ -13,6 +14,9 @@ pub(crate) struct ApproveMint {
 
 #[derive(Serialize, Deserialize, Clone, CLTyped, ToBytes, FromBytes)]
 pub(crate) struct RequestBridgeBackData {
-    pub token_ids: Vec<String>
+    pub token_ids: Vec<String>,
+    pub to_chainid: U256,
+    pub from: Key,
+    pub to: String
 }
 

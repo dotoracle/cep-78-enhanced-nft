@@ -843,7 +843,7 @@ pub fn get_token_identifiers_from_runtime_args(
 ) -> Vec<TokenIdentifier> {
     match identifier_mode {
         NFTIdentifierMode::Ordinal => get_named_arg_with_user_errors::<Vec<u64>>(
-            ARG_TOKEN_ID,
+            ARG_TOKEN_IDS,
             NFTCoreError::MissingTokenID,
             NFTCoreError::InvalidTokenIdentifier,
         )
