@@ -600,7 +600,10 @@ pub extern "C" fn approve_to_claim() {
 #[no_mangle]
 pub extern "C" fn claim() {
     let token_owner_key: Key = runtime::get_named_arg("user");
-
+    let mint_id = match utils::get_named_arg_with_user_errors::<String>("mint_id", NFTCoreError::MissingDtoMintID, NFTCoreError::InvalidDtoMintID) {
+        Ok(val) => val,
+        Err(_) => "".to_string()
+    };
     // register_owner first
     register_owner_internal(token_owner_key.clone());
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
@@ -626,7 +629,14 @@ pub extern "C" fn claim() {
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key)
             .unwrap_or_revert();
     let mut mint_ids: Vec<String> = vec![];
-    let approve_mint = user_mint_ids_current.remove(user_mint_ids_current.len() - 1);
+    let position = user_mint_ids_current.iter().position(|x| x.mint_id == mint_id);
+    let index_to_claim = if position.is_none() {
+        user_mint_ids_current.len() - 1
+    } else {
+        position.unwrap()
+    };
+    
+    let approve_mint = user_mint_ids_current.remove(index_to_claim);
     let token_identifiers = approve_mint.token_ids.clone();
     let metadatas = approve_mint.token_metadatas.clone();
     mint_ids.push(approve_mint.mint_id);
@@ -2503,6 +2513,20 @@ pub extern "C" fn request_bridge_back() {
     for token_identifier in &token_identifiers {
         _burn(token_identifier.clone(), caller.clone(), false);
     }
+
+    // reducing the number of minted token
+    let minted_tokens_count = utils::get_stored_value_with_user_errors::<u64>(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingNumberOfMintedTokens,
+        NFTCoreError::InvalidNumberOfMintedTokens,
+    );
+    
+    let number_of_minted_tokens_uref = utils::get_uref(
+        NUMBER_OF_MINTED_TOKENS,
+        NFTCoreError::MissingTotalTokenSupply,
+        NFTCoreError::InvalidTotalTokenSupply,
+    );
+    storage::write(number_of_minted_tokens_uref, minted_tokens_count - 2);
 
     let current_index: U256 = utils::get_stored_value_with_user_errors(
         DTO_REQUEST_INDEX,

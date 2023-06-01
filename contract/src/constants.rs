@@ -128,5 +128,4 @@ pub const ARG_MINT_ID: &str = "mint_id";
 pub const DTO_MINT_IDS: &str = "mintids";
 pub const DTO_REQUEST_INDEX: &str = "request_index";
 pub const DTO_REQUEST_IDS: &str = "request_ids";
-pub const ARG_REQUEST_ID: &str = "request_id";
 pub const USER_MINT_ID_LIST: &str = "user_mint_id_list";
