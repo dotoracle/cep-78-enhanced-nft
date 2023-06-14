@@ -819,7 +819,7 @@ pub fn requires_rlo_migration() -> bool {
     }
 }
 
-pub(crate) fn set_key<T: ToBytes + CLTyped>(name: &str, value: T) {
+pub fn set_key<T: ToBytes + CLTyped>(name: &str, value: T) {
     match runtime::get_key(name) {
         Some(key) => {
             let key_ref = key.try_into().unwrap_or_revert();
@@ -832,7 +832,7 @@ pub(crate) fn set_key<T: ToBytes + CLTyped>(name: &str, value: T) {
     }
 }
 
-pub fn get_mint_id_dict_key(mintid: &String) -> String {
+pub fn get_mint_id_dict_key(mintid: &str) -> String {
     let mint_id_bytes = mintid.as_bytes();
     let key_bytes = runtime::blake2b(mint_id_bytes);
     hex::encode(&key_bytes)
@@ -862,6 +862,3 @@ pub fn get_token_identifiers_from_runtime_args(
         .collect::<Vec<_>>(),
     }
 }
-
-
-

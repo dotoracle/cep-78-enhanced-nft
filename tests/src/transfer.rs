@@ -10,9 +10,9 @@ use contract::{
     constants::{
         APPROVED, ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_OPERATOR,
         ARG_SOURCE_KEY, ARG_SPENDER, ARG_TARGET_KEY, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_MINT,
-        ENTRY_POINT_REGISTER_OWNER, ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL,
-        ENTRY_POINT_TRANSFER, PAGE_TABLE, TOKEN_COUNT, TOKEN_OWNERS,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_APPROVE, ENTRY_POINT_REGISTER_OWNER,
+        ENTRY_POINT_REVOKE, ENTRY_POINT_SET_APPROVALL_FOR_ALL, ENTRY_POINT_TRANSFER, PAGE_TABLE,
+        TOKEN_COUNT, TOKEN_OWNERS,
     },
     events::events_ces::{Approval, ApprovalRevoked, Transfer},
     modalities::TokenIdentifier,
@@ -34,6 +34,8 @@ use crate::utility::{
         get_minting_contract_hash, get_nft_contract_hash, query_stored_value,
     },
 };
+
+const ENTRY_POINT_MINT: &str = "mint";
 
 #[test]
 fn should_dissallow_transfer_with_minter_or_assigned_ownership_mode() {

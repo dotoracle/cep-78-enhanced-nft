@@ -7,7 +7,7 @@ use contract::{
     constants::{
         ARG_APPROVE_ALL, ARG_COLLECTION_NAME, ARG_OPERATOR, ARG_TOKEN_HASH, ARG_TOKEN_ID,
         ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, BURNT_TOKENS, BURN_MODE, ENTRY_POINT_BURN,
-        ENTRY_POINT_MINT, ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
+        ENTRY_POINT_SET_APPROVALL_FOR_ALL, TOKEN_COUNT,
     },
     events::events_ces::Burn,
     modalities::TokenIdentifier,
@@ -27,6 +27,8 @@ use crate::utility::{
         self, get_dictionary_value_from_key, get_minting_contract_hash, get_nft_contract_hash,
     },
 };
+
+const ENTRY_POINT_MINT: &str = "mint";
 
 fn should_burn_minted_token(reporting: OwnerReverseLookupMode) {
     let mut builder = InMemoryWasmTestBuilder::default();

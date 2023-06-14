@@ -7,15 +7,7 @@ use crate::modalities::TokenIdentifier;
 
 #[derive(Event, Debug, PartialEq, Eq)]
 pub struct ApproveMintEvent {
-    mint_id: String
-}
-
-impl ApproveMintEvent {
-    pub fn new(mint_id: String) -> Self {
-        Self {
-            mint_id
-        }
-    }
+    mint_id: String,
 }
 
 #[derive(Event, Debug, PartialEq, Eq)]

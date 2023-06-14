@@ -21,10 +21,6 @@ use crate::{
 };
 
 pub enum CEP47Event {
-    Mint {
-        recipient: Key,
-        token_id: TokenIdentifier,
-    },
     Burn {
         owner: Key,
         token_id: TokenIdentifier,
@@ -72,17 +68,6 @@ pub fn record_cep47_event_dictionary(event: CEP47Event) {
     );
 
     let event: BTreeMap<&str, String> = match event {
-        CEP47Event::Mint {
-            recipient,
-            token_id,
-        } => {
-            let mut event = BTreeMap::new();
-            event.insert(PREFIX_HASH_KEY_NAME, package);
-            event.insert(EVENT_TYPE, "Mint".to_string());
-            event.insert(RECIPIENT, recipient.to_string());
-            event.insert(TOKEN_ID, token_id.to_string());
-            event
-        }
         CEP47Event::Burn { owner, token_id } => {
             let mut event = BTreeMap::new();
             event.insert(PREFIX_HASH_KEY_NAME, package);

@@ -500,7 +500,7 @@ pub extern "C" fn approve_to_claim() {
         runtime::revert(NFTCoreError::DTOMintIdExist);
     }
 
-    utils::upsert_dictionary_value_from_key(DTO_MINT_IDS, &mint_id_key, 1 as u64);
+    utils::upsert_dictionary_value_from_key(DTO_MINT_IDS, &mint_id_key, 1u64);
 
     // Revert if caller is not minter.
     let caller = utils::get_verified_caller().unwrap_or_revert();
@@ -580,7 +580,7 @@ pub extern "C" fn approve_to_claim() {
     let user_mint_ids_current =
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key);
 
-    let mut user_mint_ids_new = if user_mint_ids_current.is_some() {
+    let mut user_mint_ids_new = if let Some(..) = user_mint_ids_current {
         user_mint_ids_current.unwrap()
     } else {
         Vec::<ApproveMint>::new()
@@ -600,12 +600,16 @@ pub extern "C" fn approve_to_claim() {
 #[no_mangle]
 pub extern "C" fn claim() {
     let token_owner_key: Key = runtime::get_named_arg("user");
-    let mint_id = match utils::get_named_arg_with_user_errors::<String>("mint_id", NFTCoreError::MissingDtoMintID, NFTCoreError::InvalidDtoMintID) {
+    let mint_id = match utils::get_named_arg_with_user_errors::<String>(
+        "mint_id",
+        NFTCoreError::MissingDtoMintID,
+        NFTCoreError::InvalidDtoMintID,
+    ) {
         Ok(val) => val,
-        Err(_) => "".to_string()
+        Err(_) => "".to_string(),
     };
     // register_owner first
-    register_owner_internal(token_owner_key.clone());
+    register_owner_internal(token_owner_key);
     let total_token_supply = utils::get_stored_value_with_user_errors::<u64>(
         TOTAL_TOKEN_SUPPLY,
         NFTCoreError::MissingTotalTokenSupply,
@@ -629,13 +633,15 @@ pub extern "C" fn claim() {
         utils::get_dictionary_value_from_key::<Vec<ApproveMint>>(USER_MINT_ID_LIST, &user_item_key)
             .unwrap_or_revert();
     let mut mint_ids: Vec<String> = vec![];
-    let position = user_mint_ids_current.iter().position(|x| x.mint_id == mint_id);
-    let index_to_claim = if position.is_none() {
+    let position = user_mint_ids_current
+        .iter()
+        .position(|x| x.mint_id == mint_id);
+    let index_to_claim = if let Some(..) = position {
         user_mint_ids_current.len() - 1
     } else {
         position.unwrap()
     };
-    
+
     let approve_mint = user_mint_ids_current.remove(index_to_claim);
     let token_identifiers = approve_mint.token_ids.clone();
     let metadatas = approve_mint.token_metadatas.clone();
@@ -699,7 +705,7 @@ pub extern "C" fn claim() {
             &owned_tokens_item_key,
             true,
         );
-        minted_tokens_count = minted_tokens_count + 1;
+        minted_tokens_count += 1;
         let receipt_string = utils::get_receipt_name(page_table_entry);
         let receipt_address = Key::dictionary(page_uref, owned_tokens_item_key.as_bytes());
 
@@ -749,7 +755,7 @@ pub extern "C" fn burn() {
 
     let expected_token_owner = utils::get_verified_caller().unwrap_or_revert();
 
-    _burn(token_identifier.clone(), expected_token_owner.clone(), true);
+    _burn(token_identifier, expected_token_owner, true);
 }
 
 fn _burn(token_identifier: TokenIdentifier, expected_token_owner: Key, set_burn: bool) {
@@ -815,12 +821,10 @@ fn _burn(token_identifier: TokenIdentifier, expected_token_owner: Key, set_burn:
 
     match events_mode {
         EventsMode::NoEvents => {}
-        EventsMode::CES => {
-            casper_event_standard::emit(Burn::new(token_owner.clone(), token_identifier.clone()))
-        }
+        EventsMode::CES => casper_event_standard::emit(Burn::new(token_owner, token_identifier)),
         EventsMode::CEP47 => record_cep47_event_dictionary(CEP47Event::Burn {
-            owner: token_owner.clone(),
-            token_id: token_identifier.clone(),
+            owner: token_owner,
+            token_id: token_identifier,
         }),
     }
 }
@@ -2511,7 +2515,7 @@ pub extern "C" fn request_bridge_back() {
     }
 
     for token_identifier in &token_identifiers {
-        _burn(token_identifier.clone(), caller.clone(), false);
+        _burn(token_identifier.clone(), caller, false);
     }
 
     // reducing the number of minted token
@@ -2520,7 +2524,7 @@ pub extern "C" fn request_bridge_back() {
         NFTCoreError::MissingNumberOfMintedTokens,
         NFTCoreError::InvalidNumberOfMintedTokens,
     );
-    
+
     let number_of_minted_tokens_uref = utils::get_uref(
         NUMBER_OF_MINTED_TOKENS,
         NFTCoreError::MissingTotalTokenSupply,
@@ -2544,7 +2548,7 @@ pub extern "C" fn request_bridge_back() {
             token_ids: token_identifiers.iter().map(|x| x.to_string()).collect(),
             to_chainid,
             from: caller,
-            to: to
+            to,
         },
     );
     // emitting event

@@ -15,6 +15,7 @@ const {
 const { installContract, createRecipientAddress } = helpers;
 const { getDeploy } = require('./utils')
 let key = require('./keys.json').key
+let NFTInfo = require('./NFTInfo.json')
 const {
   NODE_ADDRESS,
   CHAIN_NAME,
@@ -30,11 +31,11 @@ console.log('pubkey', KEYS.accountHex())
 const main = async () => {
 
   //   --session-arg "collection_name:string=''" \
-  const collection_name = new CLString("Wrapped Faucet 2");
+  const collection_name = new CLString(NFTInfo.collectionName);
   // --session-arg "collection_symbol:string=''" \
-  const collection_symbol = new CLString("WF");
+  const collection_symbol = new CLString(NFTInfo.collectionSymbol);
   // --session-arg "total_token_supply:u64='10'" \
-  const total_token_supply = new CLU64("10000");
+  const total_token_supply = new CLU64(NFTInfo.totalSupply);
   // --------------------
   // |    Mode      | u8 |
   // --------------------
@@ -179,15 +180,6 @@ const main = async () => {
     minter: csp_minter,
     contract_owner: csp_dev
   })
-  console.log(CHAIN_NAME,
-    NODE_ADDRESS,
-    KEYS,
-    runtimeArgs,
-    paymentAmount,
-    WASM_PATH
-  )
-  // let newPath = "./scripts/contract.wasm"
-  // let pathWasmOfficial = `../cep78New/cep-78-enhanced-nft/contract/target/wasm32-unknown-unknown/release/contract.wasm`;
   console.log("DDDDD")
   let hash = await installContract(
     CHAIN_NAME,

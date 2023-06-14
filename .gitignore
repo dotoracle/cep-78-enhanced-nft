@@ -7,6 +7,8 @@ node_modules
 keys.json
 *.pem
 .env
+scripts
+scripts2
 
 
 

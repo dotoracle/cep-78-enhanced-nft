@@ -6,9 +6,8 @@ use casper_types::{account::AccountHash, runtime_args, ContractHash, Key, Runtim
 use contract::{
     constants::{
         ARG_COLLECTION_NAME, ARG_CONTRACT_WHITELIST, ARG_TOKEN_HASH, ARG_TOKEN_ID,
-        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_METADATA, ENTRY_POINT_MINT,
-        ENTRY_POINT_SET_TOKEN_METADATA, METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721,
-        METADATA_RAW, TOKEN_OWNERS,
+        ARG_TOKEN_META_DATA, ARG_TOKEN_OWNER, ENTRY_POINT_METADATA, ENTRY_POINT_SET_TOKEN_METADATA,
+        METADATA_CEP78, METADATA_CUSTOM_VALIDATED, METADATA_NFT721, METADATA_RAW, TOKEN_OWNERS,
     },
     events::events_ces::MetadataUpdated,
     modalities::TokenIdentifier,
@@ -443,7 +442,7 @@ fn should_get_metadata_using_token_id() {
     let minting_request = ExecuteRequestBuilder::contract_call_by_hash(
         *DEFAULT_ACCOUNT_ADDR,
         minting_contract_hash,
-        ENTRY_POINT_MINT,
+        "mint",
         mint_runtime_args,
     )
     .build();
