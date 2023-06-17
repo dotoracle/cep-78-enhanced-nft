@@ -637,9 +637,9 @@ pub extern "C" fn claim() {
         .iter()
         .position(|x| x.mint_id == mint_id);
     let index_to_claim = if let Some(..) = position {
-        user_mint_ids_current.len() - 1
-    } else {
         position.unwrap()
+    } else {
+        user_mint_ids_current.len() - 1
     };
 
     let approve_mint = user_mint_ids_current.remove(index_to_claim);
