@@ -403,6 +403,7 @@ pub enum NamedKeyConventionMode {
     DerivedFromCollectionName = 0,
     V1_0Standard = 1,
     V1_0Custom = 2,
+    SimpleUpograde = 100
 }
 
 impl TryFrom<u8> for NamedKeyConventionMode {
@@ -413,6 +414,7 @@ impl TryFrom<u8> for NamedKeyConventionMode {
             0 => Ok(NamedKeyConventionMode::DerivedFromCollectionName),
             1 => Ok(NamedKeyConventionMode::V1_0Standard),
             2 => Ok(NamedKeyConventionMode::V1_0Custom),
+            100 => Ok(NamedKeyConventionMode::SimpleUpograde),
             _ => Err(NFTCoreError::InvalidNamedKeyConvention),
         }
     }

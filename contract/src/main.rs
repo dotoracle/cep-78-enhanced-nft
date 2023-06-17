@@ -2566,6 +2566,38 @@ pub extern "C" fn request_bridge_back() {
     storage::write(request_index_uref, next_index);
 }
 
+fn simple_upgrade() {
+    let collection_name: String = utils::get_named_arg_with_user_errors(
+        ARG_COLLECTION_NAME,
+        NFTCoreError::MissingCollectionName,
+        NFTCoreError::InvalidCollectionName,
+    )
+    .unwrap_or_revert();
+
+    let hash_key_name = format!("{PREFIX_HASH_KEY_NAME}_{collection_name}");
+    let nft_contract_package_hash: ContractPackageHash = runtime::get_key(&hash_key_name)
+        .unwrap_or_revert()
+        .into_hash()
+        .map(ContractPackageHash::new)
+        .unwrap();
+
+    let (contract_hash, contract_version) = storage::add_contract_version(
+        nft_contract_package_hash,
+        generate_entry_points(),
+        NamedKeys::new(),
+    );
+
+    // Store contract_hash and contract_version under the keys CONTRACT_NAME and CONTRACT_VERSION
+    runtime::put_key(
+        &format!("{PREFIX_CONTRACT_NAME}_{collection_name}"),
+        contract_hash.into(),
+    );
+    runtime::put_key(
+        &format!("{PREFIX_CONTRACT_VERSION}_{collection_name}"),
+        storage::new_uref(contract_version).into(),
+    );
+}
+
 #[no_mangle]
 pub extern "C" fn call() {
     let convention_mode: NamedKeyConventionMode =
@@ -2587,6 +2619,7 @@ pub extern "C" fn call() {
             runtime::get_named_arg(ARG_ACCESS_KEY_NAME_1_0_0),
             runtime::get_named_arg(ARG_HASH_KEY_NAME_1_0_0),
         ),
+        NamedKeyConventionMode::SimpleUpograde => simple_upgrade()
     }
 }
 
