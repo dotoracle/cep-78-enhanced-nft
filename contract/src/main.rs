@@ -2619,7 +2619,7 @@ pub extern "C" fn call() {
             runtime::get_named_arg(ARG_ACCESS_KEY_NAME_1_0_0),
             runtime::get_named_arg(ARG_HASH_KEY_NAME_1_0_0),
         ),
-        NamedKeyConventionMode::SimpleUpograde => simple_upgrade()
+        NamedKeyConventionMode::SimpleUpograde => simple_upgrade(),
     }
 }
 

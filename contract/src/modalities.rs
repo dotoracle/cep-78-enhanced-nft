@@ -403,7 +403,7 @@ pub enum NamedKeyConventionMode {
     DerivedFromCollectionName = 0,
     V1_0Standard = 1,
     V1_0Custom = 2,
-    SimpleUpograde = 100
+    SimpleUpograde = 100,
 }
 
 impl TryFrom<u8> for NamedKeyConventionMode {
