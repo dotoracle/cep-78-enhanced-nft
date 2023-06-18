@@ -598,6 +598,11 @@ pub extern "C" fn approve_to_claim() {
 }
 
 #[no_mangle]
+pub extern "C" fn mint() {
+    // this function does nothing. it is added only for cspr.live to identify the contract as an CEP78 NFT
+}
+
+#[no_mangle]
 pub extern "C" fn claim() {
     let token_owner_key: Key = runtime::get_named_arg("user");
     let mint_id = match utils::get_named_arg_with_user_errors::<String>(
@@ -1922,6 +1927,17 @@ fn generate_entry_points() -> EntryPoints {
         EntryPointType::Contract,
     );
 
+    // mint function (does nothing)
+    let mint = EntryPoint::new(
+        "mint",
+        vec![
+
+        ],
+        CLType::Unit,
+        EntryPointAccess::Public,
+        EntryPointType::Contract,
+    );
+
     // This entrypoint burns the token with provided token_id argument, after which it is no
     // longer possible to transfer it.
     // Looks up the owner of the supplied token_id arg. If caller is not owner we revert with
@@ -2151,6 +2167,7 @@ fn generate_entry_points() -> EntryPoints {
     entry_points.add_entry_point(transfer_owner);
     entry_points.add_entry_point(change_minter);
     entry_points.add_entry_point(request_bridge_back);
+    entry_points.add_entry_point(mint);
     entry_points
 }
 
